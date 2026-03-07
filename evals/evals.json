@@ -1,0 +1,382 @@
+{
+  "skill_name": "email-triage",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Triage my email. Note: there is no triage-rules.md file in my working folder.",
+      "expected_output": "The skill should detect the missing triage-rules.md file, inform the user, and show the template from references/triage-rules-template.md so the user knows what to fill in.",
+      "files": [],
+      "expectations": [
+        "The skill detects that triage-rules.md is missing from the working folder",
+        "The skill informs the user that triage-rules.md is required and could not be found",
+        "The skill references or shows the template from references/triage-rules-template.md",
+        "The skill does NOT proceed to scan or classify emails without rules",
+        "The skill does NOT fabricate or invent its own default rules"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Triage my email. My triage-rules.md is in the working folder, but there is NO email-triage-config.json file. Note for testing: Do NOT actually call any Gmail tools or run any commands \u2014 just describe what you would do and verify connector/config availability first.",
+      "expected_output": "The skill should check for both the Gmail connector and email-triage-config.json, and report that the config is missing with setup instructions.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill attempts to verify Gmail connector availability as part of Step 0",
+        "The skill checks for email-triage-config.json in the working folder",
+        "The skill reports that the config file is missing",
+        "The skill directs the user to the setup guide (references/apps-script-setup.md) or shows the config template",
+        "The skill does NOT proceed to scan the inbox without a working config"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I have the following emails in my inbox. Please classify each one according to my triage-rules.md (which is in the working folder). Do NOT use Gmail or Chrome tools \u2014 just classify based on the information I provide and present results in review mode format.\n\nEmail 1: From: marketing@randomcorp.com, Subject: 'Boost your sales with our AI tool \u2014 free demo!', Snippet: 'Hi, I'd love to show you how our platform can save you time...'\n\nEmail 2: From: jane@testcompany.com, Subject: 'Q1 planning meeting notes', Snippet: 'Here are the notes from today's meeting...'\n\nEmail 3: From: no-reply@zoom.us, Subject: 'Cloud Recording - Meeting Summary Available', Snippet: 'Your cloud recording is now available...'\n\nEmail 4: From: newsletters@substack.com, Subject: 'Weekly digest from The Browser', Snippet: 'This week's top picks...'\n\nEmail 5: From: noreply@amazon.com, Subject: 'Your Amazon order has shipped', Snippet: 'Track your package...'\n\nEmail 6: From: friend@gmail.com, Subject: 'Can you review my resume?', Snippet: 'Hey, would you mind taking a look at my resume and giving feedback?'\n\nEmail 7: From: unknown@mystery.org, Subject: 'Meeting follow-up', Snippet: 'It was nice connecting at the conference. I wanted to...'",
+      "expected_output": "A review-mode summary table classifying each email with the correct label, matched rule, and reasoning.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "Email 1 (randomcorp marketing) is classified as Suspected Junk matching Rule 1 (Vendor Solicitations) due to sales language and demo offer",
+        "Email 2 (jane@testcompany.com) is classified as Informational or Action Needed \u2014 NOT Suspected Junk \u2014 because testcompany.com is a Trusted Domain",
+        "Email 3 (Zoom recording) is classified as Suspected Junk matching Rule 3 (Automated Platform Notifications) as a Zoom recording notification",
+        "Email 4 (Substack newsletter) is classified as Informational \u2014 NOT Suspected Junk \u2014 because *@substack.com is a Trusted Source",
+        "Email 5 (Amazon shipping) is classified as Suspected Junk matching Rule 4 (Booking Confirmations & Order Notifications)",
+        "Email 6 (friend resume review) is classified as Action Needed because it explicitly requests action from the user",
+        "Email 7 (mystery.org follow-up) is classified as Unknown \u2014 NOT Suspected Junk \u2014 because it's ambiguous and the skill should err on the side of keeping",
+        "Results are presented in a review-mode table format with columns for From, Subject, Label, Rule, and Reasoning",
+        "The skill waits for user approval before proceeding to labeling (review mode behavior)"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I have the following emails in my inbox. Please classify each one according to my triage-rules.md (which is in the working folder). Do NOT use Gmail or Chrome tools \u2014 just classify based on the information I provide. The rules are in auto mode.\n\nEmail 1: From: sales@outreach.io, Subject: 'Quick call about your workflow?', Snippet: 'Are you the right person to discuss improving your team's productivity?'\n\nEmail 2: From: noreply@linkedin.com, Subject: 'You appeared in 15 searches this week', Snippet: 'See who viewed your profile...'\n\nEmail 3: From: boss@testcompany.com, Subject: 'Urgent: Need your input on proposal', Snippet: 'Please review the attached proposal and send comments by EOD...'\n\nEmail 4: From: news@dailymarketing.com, Subject: 'Your weekly marketing digest', Snippet: 'Top stories this week... Unsubscribe from this newsletter...'",
+      "expected_output": "Auto-mode summary showing processed counts by label category, without requiring approval.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "Email 1 (sales@outreach.io) is classified as Suspected Junk matching Rule 1 (Vendor Solicitations) \u2014 sent from outreach.io sales platform with cold outreach language",
+        "Email 2 (LinkedIn profile views) is classified as Suspected Junk matching Rule 3 or Rule 5 \u2014 routine LinkedIn notification",
+        "Email 3 (boss@testcompany.com urgent) is classified as Action Needed \u2014 from Trusted Domain AND explicitly requests action",
+        "Email 4 (marketing digest with unsubscribe) is classified as Suspected Junk matching Rule 2 (Newsletters & Marketing) \u2014 contains unsubscribe link, not a Trusted Source",
+        "Results are presented in auto-mode format with a summary count (e.g., Suspected Junk: 3, Action Needed: 1)",
+        "The skill does NOT present a table for approval (auto mode skips the approval step)"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I have the following emails in my inbox. Please classify each one according to my triage-rules.md (which is in the working folder). Do NOT use Gmail or Chrome tools \u2014 just classify based on the information I provide.\n\nEmail 1: From: ceo@testcompany.com, Subject: 'Storage quota warning', Snippet: 'Your Google Workspace storage is 90% full...'\n\nEmail 2: From: admin@testcompany.com, Subject: 'New sign-in from Chrome on Windows', Snippet: 'A new sign-in to your account from a recognized device...'\n\nEmail 3: From: security@testcompany.com, Subject: 'Suspicious sign-in attempt blocked', Snippet: 'We blocked a sign-in attempt from an unrecognized device in Russia...'",
+      "expected_output": "Tests the interaction between Trusted Domain rules and Rule 3 exceptions \u2014 trusted domain emails that ARE automated notifications should still be archived per Rule 3, but security alerts for suspicious activity should be kept.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "Email 1 (storage quota from testcompany.com) is classified as Suspected Junk \u2014 even though testcompany.com is a Trusted Domain, the Decision Framework allows Rule 3 automated notifications to be archived for trusted domains",
+        "Email 2 (routine sign-in from testcompany.com) is classified as Suspected Junk \u2014 routine sign-in notification is a Rule 3 match, and the Decision Framework carve-out for Trusted Domains explicitly allows Rule 3 notifications to be archived",
+        "Email 3 (suspicious sign-in from testcompany.com) is NOT classified as Suspected Junk \u2014 it is a security alert about a suspicious/unrecognized sign-in, which is a Rule 3 exception. Should be Action Needed or Informational"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I have the following emails in my inbox. Please classify each one according to my triage-rules.md. Do NOT use Gmail or Chrome tools \u2014 just classify.\n\nEmail 1: From: noreply@uber.com, Subject: 'Your trip receipt', Snippet: 'Thanks for riding with Uber. Trip total: $23.50'\n\nEmail 2: From: noreply@amazon.com, Subject: 'Problem with your delivery', Snippet: 'We were unable to deliver your package. Please choose a new delivery date...'\n\nEmail 3: From: reservations@hotel.com, Subject: 'Booking confirmation #12345', Snippet: 'Your stay at Grand Hotel is confirmed for March 1-3...'\n\nEmail 4: From: airline@delta.com, Subject: 'Check in now for your flight', Snippet: 'Your flight departs tomorrow. Check in online to get your boarding pass...'",
+      "expected_output": "Tests Rule 4 (Booking Confirmations) including its exceptions for delivery problems and action-required emails.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "Email 1 (Uber receipt) is classified as Suspected Junk matching Rule 4 \u2014 transactional confirmation requiring no action",
+        "Email 2 (Amazon delivery problem) is NOT classified as Suspected Junk \u2014 it's a Rule 4 exception for delivery problem notifications that require action. Should be Action Needed",
+        "Email 3 (hotel booking confirmation) is classified as Suspected Junk matching Rule 4 \u2014 straightforward booking confirmation",
+        "Email 4 (Delta check-in) is NOT classified as Suspected Junk \u2014 it's a Rule 4 exception because the user needs to take action (check in). Should be Action Needed"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I have the following emails. Please classify each one according to my triage-rules.md. Do NOT use Gmail or Chrome tools.\n\nEmail 1: From: editor@mattlevine.substack.com, Subject: 'Money Stuff: Banks Are Still Banking', Snippet: 'Good morning. Today we discuss...' (contains unsubscribe link)\n\nEmail 2: From: digest@medium.com, Subject: 'Your Daily Medium Digest', Snippet: 'Top stories for you today...' (contains unsubscribe link)\n\nEmail 3: From: hello@randomnewsletter.com, Subject: 'Weekly Roundup #47', Snippet: 'This week in tech...' (contains unsubscribe link, sent via Mailchimp)",
+      "expected_output": "Tests Trusted Sources exception handling \u2014 Substack and Money Stuff should be kept, while other newsletters should be archived.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "Email 1 (Money Stuff from substack.com) is NOT classified as Suspected Junk \u2014 it matches BOTH Trusted Source rules: *@substack.com pattern AND Money Stuff newsletter explicitly",
+        "Email 2 (Medium digest) is classified as Suspected Junk matching Rule 2 or Rule 5 \u2014 Medium digest is not a Trusted Source and matches newsletter/social media signals",
+        "Email 3 (random newsletter via Mailchimp) is classified as Suspected Junk matching Rule 2 \u2014 contains unsubscribe link, sent via Mailchimp, not a Trusted Source"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I have the following emails. Please classify each one according to my triage-rules.md. Do NOT use Gmail or Chrome tools. Pay special attention to the decision framework priority order.\n\nEmail 1: From: hr@testcompany.com, Subject: 'Your weekly team digest', Snippet: 'Here's what happened in your team this week... Unsubscribe from these notifications' (contains unsubscribe link, from trusted domain)\n\nEmail 2: From: support@randomtool.com, Subject: 'Re: Issue with my account', Snippet: 'Thanks for reaching out. We've looked into your issue and here's what we found...' (this is a reply in an ongoing thread where the user initiated the conversation)",
+      "expected_output": "Tests decision framework priority \u2014 trusted domain + unsubscribe link, and ongoing thread from non-trusted domain.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "Email 1 (hr@testcompany.com digest with unsubscribe) is NOT classified as Suspected Junk \u2014 Trusted Domain takes priority over Rule 2 newsletter signals. The Decision Framework says Trusted Domains are KEPT unless it's a Rule 3 automated notification, and a team digest with unsubscribe is Rule 2, not Rule 3",
+        "Email 2 (support reply in ongoing thread) is NOT classified as Suspected Junk \u2014 Decision Framework priority 2 says ongoing threads where the user is in To/CC should be KEPT, regardless of sender domain"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "After triaging my email, please create or update the email-triage-log.md file. Here are the classification results to log:\n\n1. From: SpammerInc, Subject: 'Free trial of our amazing product', Label: Suspected Junk, Rule: Rule 1 \u2014 Vendor Solicitations, Reason: Cold outreach with free trial offer\n2. From: Unknown Person, Subject: 'Quick question', Label: Unknown, Rule: No match, Reason: Ambiguous email that could be personal or spam\n3. From: boss@testcompany.com, Subject: 'Review needed', Label: Action Needed, Rule: N/A (Trusted Domain + action required), Reason: From trusted domain requesting action\n4. From: news@techblog.com, Subject: 'Weekly Newsletter', Label: Suspected Junk, Rule: Rule 2 \u2014 Newsletters, Reason: Newsletter with unsubscribe link\n5. From: colleague@testcompany.com, Subject: 'FYI: meeting notes', Label: Informational, Rule: N/A (Trusted Domain), Reason: From trusted domain, informational content\n\nThere is no existing log file \u2014 create a new one.",
+      "expected_output": "A new email-triage-log.md with proper format containing only Suspected Junk and Unknown entries.",
+      "files": [],
+      "expectations": [
+        "The log file is created as email-triage-log.md",
+        "The log contains a Markdown table with columns: Date, From, Subject, Label, Rule, Reason, Feedback",
+        "The log includes the Suspected Junk entry for SpammerInc (Rule 1)",
+        "The log includes the Unknown entry for Unknown Person (No match)",
+        "The log includes the Suspected Junk entry for news@techblog.com (Rule 2)",
+        "The log does NOT include the Action Needed entry for boss@testcompany.com \u2014 Action Needed emails are not logged",
+        "The log does NOT include the Informational entry for colleague@testcompany.com \u2014 Informational emails are not logged",
+        "The Feedback column is left empty for user annotation"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "After triaging my email, please update the existing email-triage-log.md file. The existing log is in the working folder. Here are the new classification results to add:\n\n1. From: NewSpammer, Subject: 'Partnership opportunity', Label: Suspected Junk, Rule: Rule 1 \u2014 Vendor Solicitations, Reason: Cold outreach partnership pitch\n2. From: WeirdSender, Subject: 'Regarding your inquiry', Label: Unknown, Rule: No match, Reason: Cannot determine if this is a legitimate reply or spam",
+      "expected_output": "The existing log should be preserved with new entries prepended at the top (newest first).",
+      "files": [
+        "existing-log.md"
+      ],
+      "expectations": [
+        "The existing log entries from 2026-02-14 (SpamCorp and LinkedIn) are preserved and still present in the file",
+        "New entries for NewSpammer and WeirdSender are added ABOVE the existing entries (newest first)",
+        "The new entries use today's date (2026-02-15 or current date), not the original email dates",
+        "The table header row is present exactly once at the top",
+        "The overall Markdown table format is valid with consistent column structure"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "I just reviewed the triage results and found some mistakes:\n1. The email from 'newsletter@importantpartner.com' with subject 'Monthly Update' was classified as Suspected Junk, but I actually want to keep emails from importantpartner.com \u2014 they're a key vendor.\n2. The Substack email from 'boring@substack.com' with subject 'Boring Company Weekly' was kept because of the *@substack.com trusted source rule, but I actually don't want that specific newsletter.\n\nCan you update my triage-rules.md to fix these for future sessions?",
+      "expected_output": "The skill should propose specific rule changes and explain them before editing.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "The skill proposes adding importantpartner.com to the Trusted Domains list",
+        "The skill proposes adding an exception or exclusion for boring@substack.com specifically, while keeping the general *@substack.com Trusted Source rule",
+        "The skill explains what each proposed change would do and why",
+        "The skill asks for user approval before making changes to triage-rules.md",
+        "The skill does NOT silently edit the rules file without explaining the changes first"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "I have 30 emails in my inbox that need triaging. Here are the first few:\n\nEmail 1: From: spam1@junk.com, Subject: 'Buy now!'\nEmail 2: From: spam2@junk.com, Subject: 'Limited offer!'\nEmail 3: From: boss@testcompany.com, Subject: 'Team update'\n... (27 more emails)\n\nClassify these according to my triage-rules.md. Do NOT use Gmail or Chrome tools.",
+      "expected_output": "The skill should respect the 25-email batch size limit and offer to process the remaining emails in a subsequent batch.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill processes at most 25 emails in the first batch",
+        "The skill indicates that there are more unprocessed emails remaining",
+        "The skill asks the user if they want to process the next batch",
+        "The skill does NOT attempt to process all 30 emails in a single pass"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Triage my email. Use my triage-rules.md from the working folder. When scanning the inbox, explain what Gmail search query you would use and why.",
+      "expected_output": "The skill should use the exclusion query to filter out already-labeled emails.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill uses or describes a Gmail search query that includes 'in:inbox'",
+        "The search query includes exclusion filters: '-label:Suspected-Junk' or equivalent",
+        "The search query includes exclusion filters: '-label:Action-Needed' or equivalent",
+        "The search query includes exclusion filters: '-label:Informational' or equivalent",
+        "The skill explains that the exclusion filters prevent re-processing emails from previous sessions"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Please read my triage-rules.md and confirm you understand the mode setting. What mode is it set to, and how does that affect the workflow?",
+      "expected_output": "The skill correctly identifies the mode (review) and explains the behavioral difference.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "The skill correctly identifies the mode as 'review'",
+        "The skill explains that review mode presents a summary table with proposed classifications",
+        "The skill explains that in review mode, it waits for user approval before proceeding to label and archive",
+        "The skill mentions that the user can approve all, reject specific classifications, or ask questions about reasoning"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "I've classified these emails and now need to build the action plan for labeling. Do NOT actually run any commands or tools \u2014 just show me the JSON action plan you would send to the Apps Script. Here are the classifications:\n\n1. messageId: 'msg_aaa111', From: spam@junk.com, Label: Suspected Junk (archive)\n2. messageId: 'msg_bbb222', From: boss@company.com, Label: Action Needed\n3. messageId: 'msg_ccc333', From: newsletter@news.com, Label: Informational\n4. messageId: 'msg_ddd444', From: unknown@mystery.org, Label: Unknown\n5. messageId: 'msg_eee555', From: spam2@junk.com, Label: Suspected Junk (archive)\n\nAssume the Apps Script URL is https://script.google.com/macros/s/EXAMPLE/exec and the secret is test-secret-123.",
+      "expected_output": "A correctly structured JSON action plan with proper messageIds, labels, and archive flags.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The JSON payload includes a 'secret' field set to 'test-secret-123'",
+        "The JSON payload includes an 'actions' array",
+        "msg_aaa111 has addLabels: ['Suspected Junk'] and archive: true",
+        "msg_bbb222 has addLabels: ['Action Needed'] and archive: false",
+        "msg_ccc333 has addLabels: ['Informational'] and archive: false",
+        "msg_ddd444 (Unknown) is NOT included in the actions array \u2014 Unknown emails don't get labels",
+        "msg_eee555 has addLabels: ['Suspected Junk'] and archive: true",
+        "The actions array has exactly 4 entries (not 5, since Unknown is excluded)"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "I sent the action plan to the Apps Script and got this response:\n\n{\"success\":false,\"processed\":4,\"results\":[{\"messageId\":\"msg_aaa111\",\"status\":\"ok\"},{\"messageId\":\"msg_bbb222\",\"status\":\"error\",\"error\":\"Message not found\"},{\"messageId\":\"msg_ccc333\",\"status\":\"ok\"},{\"messageId\":\"msg_eee555\",\"status\":\"error\",\"error\":\"Label creation failed\"}],\"errors\":[\"2 of 4 actions failed\"]}\n\nHow should the skill handle this? Do NOT actually call any tools \u2014 just describe the error handling and retry strategy.",
+      "expected_output": "The skill should identify the 2 failures, explain them to the user, and describe a retry strategy.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill identifies that msg_bbb222 and msg_eee555 failed",
+        "The skill reports the specific error messages: 'Message not found' for msg_bbb222 and 'Label creation failed' for msg_eee555",
+        "The skill proposes building a retry payload with just the 2 failed actions",
+        "The skill acknowledges that msg_aaa111 and msg_ccc333 succeeded and do NOT need to be retried",
+        "The skill mentions that if the retry also fails, the user may need to apply those labels manually"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "I've deployed the Apps Script and created email-triage-config.json in my working folder. Before triaging, please run the health check to confirm the Apps Script is reachable. Do NOT actually triage any emails \u2014 just verify the deployment is working.\n\nNote for testing: Simulate that the health check Python command returns this response:\n{\"status\":\"ok\",\"service\":\"gmail-calendar-actions\",\"capabilities\":[\"gmail\",\"calendar\",\"email\"],\"timestamp\":\"2026-02-21T10:30:00Z\"}\n\nDescribe the exact steps you would take and how you interpret the response.",
+      "expected_output": "The skill should run a Python urllib.request GET to the Apps Script URL and interpret the response as a successful deployment.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill reads email-triage-config.json to get the Apps Script URL",
+        "The skill uses Python urllib.request via Bash to reach the Apps Script URL for the health check",
+        "The skill reads the command output to get the health check response",
+        "The skill interprets the response: status 'ok' means the deployment is working",
+        "The skill confirms the service name matches 'gmail-calendar-actions'",
+        "The skill reports to the user that the Apps Script deployment is healthy and ready"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "I've deployed the Apps Script but the health check is failing. When I run the health check, I get this response:\n\n<!DOCTYPE html><html><head><title>Error</title></head><body><p>Script function not found: doGet</p></body></html>\n\nWhat's wrong and how do I fix it?",
+      "expected_output": "The skill should diagnose the issue as a missing doGet function or deployment problem and guide the user to fix it.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill identifies that the response is an HTML error, not the expected JSON health check",
+        "The skill diagnoses the problem: the doGet function is missing or the script was not deployed correctly",
+        "The skill suggests the user check that they pasted the complete script code including the doGet function",
+        "The skill suggests redeploying the web app (Deploy \u2192 Manage deployments \u2192 New version)",
+        "The skill references the troubleshooting section in the setup guide or provides equivalent advice"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "I'm triaging emails and the Apps Script POST returned this response:\n\n{\"error\":\"Invalid or missing secret\"}\n\nWhat went wrong?",
+      "expected_output": "The skill should diagnose the secret mismatch and guide the user to fix it.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill identifies this as a shared secret mismatch between email-triage-config.json and the Apps Script",
+        "The skill advises the user to check that the apps_script_secret in email-triage-config.json matches the SHARED_SECRET variable in the Apps Script",
+        "The skill does NOT proceed to label emails or retry with the same secret",
+        "The skill suggests specific steps: open Apps Script editor, check the SHARED_SECRET value, compare with config file"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "After labeling emails via the Apps Script, I need to verify the labels were applied. The Apps Script reported all 5 actions succeeded. Now I run the verification query.\n\nSimulate that search_gmail_messages with query 'in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational' returns these 3 emails:\n\n1. messageId: 'msg_unknown1', From: mystery@example.com, Subject: 'Hello' \u2014 this was classified as Unknown (intentionally not labeled)\n2. messageId: 'msg_missed1', From: spam@junk.com, Subject: 'Buy now!' \u2014 this was classified as Suspected Junk but the label is missing\n3. messageId: 'msg_new1', From: boss@company.com, Subject: 'New meeting' \u2014 this is a NEW email that arrived after triage started (not in the classification list)\n\nDescribe the verification logic and what actions you would take.",
+      "expected_output": "The skill should correctly distinguish between intentionally unlabeled (Unknown), missed labels, and new emails.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill recognizes msg_unknown1 as an intentionally unlabeled Unknown classification \u2014 no action needed",
+        "The skill identifies msg_missed1 as a failed label application that needs to be fixed",
+        "The skill proposes re-sending msg_missed1 to the Apps Script with its original classification (Suspected Junk, archive: true)",
+        "The skill recognizes msg_new1 as a new email not in the original classification list \u2014 it should NOT be labeled in this session",
+        "The skill would re-verify after the retry to confirm msg_missed1 is now labeled",
+        "The skill reports verification results to the user including how many succeeded on first pass vs needed retry"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "I need to send a large action plan with 30 emails to the Apps Script. Show me how you would handle this \u2014 describe the exact approach for constructing and executing the request.\n\nAssume the Apps Script URL is https://script.google.com/macros/s/EXAMPLE/exec and the secret is my-secret-key.",
+      "expected_output": "The skill should use Python urllib.request via Bash to POST the action plan, writing the JSON to a temp file first to avoid shell escaping issues.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill uses Python urllib.request via Bash to send the POST request",
+        "The skill writes the JSON payload to a temporary file rather than inlining it in the command",
+        "The skill sets Content-Type to 'application/json' in the request headers",
+        "The skill reads the JSON from the temp file and sends it as the request body",
+        "The skill prints the response body so it can be parsed",
+        "The skill explains that writing to a temp file avoids shell escaping issues with large JSON payloads"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "The Apps Script POST returned a successful response, but when I verify, ALL 8 emails I labeled are still showing up as unlabeled in the verification query. The Apps Script response was:\n\n{\"success\":true,\"processed\":8,\"results\":[{\"messageId\":\"msg1\",\"status\":\"ok\"},{\"messageId\":\"msg2\",\"status\":\"ok\"},{\"messageId\":\"msg3\",\"status\":\"ok\"},{\"messageId\":\"msg4\",\"status\":\"ok\"},{\"messageId\":\"msg5\",\"status\":\"ok\"},{\"messageId\":\"msg6\",\"status\":\"ok\"},{\"messageId\":\"msg7\",\"status\":\"ok\"},{\"messageId\":\"msg8\",\"status\":\"ok\"}],\"errors\":[]}\n\nDescribe what might be wrong and what steps to take.",
+      "expected_output": "The skill should recognize this as a systemic issue rather than individual failures, and suggest troubleshooting steps.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill recognizes this as unusual \u2014 the Apps Script reported success but no labels were actually applied",
+        "The skill suggests the Apps Script may have a bug, or the message IDs may not be matching correctly",
+        "The skill suggests re-running the health check to confirm the script is still working",
+        "The skill considers that the Gmail API may have a propagation delay \u2014 suggest waiting briefly and re-verifying",
+        "The skill does NOT blindly retry all 8 emails repeatedly without investigating the root cause",
+        "The skill suggests the user check the Apps Script execution logs (View \u2192 Executions in the script editor) for errors"
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "Run the Apps Script health check. My email-triage-config.json is in the working folder. This is a LIVE test \u2014 actually run the health check command and read the response.",
+      "expected_output": "The skill should run a Python urllib.request GET to the Apps Script URL and confirm the health check returns a valid JSON response with status ok.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill reads email-triage-config.json to get the Apps Script URL",
+        "The skill uses Python urllib.request via Bash to reach the Apps Script URL",
+        "The skill reads the output and finds a JSON response containing 'status' and 'ok'",
+        "The skill confirms the service name is 'gmail-calendar-actions'",
+        "The skill reports that the health check passed and the deployment is live"
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "Send a test POST to the Apps Script with an empty actions array to verify round-trip communication. My email-triage-config.json is in the working folder. This is a LIVE test \u2014 actually send the request via Python and read the response.\n\nUse the real URL and secret from the config file. Send: {\"secret\": \"<from config>\", \"actions\": []}",
+      "expected_output": "The skill should use Python urllib.request to POST to the Apps Script and read back a valid JSON response.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill reads email-triage-config.json to get the URL and secret",
+        "The skill uses Python urllib.request via Bash to send the POST request",
+        "The skill sets Content-Type to 'application/json' in the request headers",
+        "The skill sends a JSON body with the correct secret and an empty actions array",
+        "The skill receives a successful response (no exceptions raised)",
+        "The response body contains valid JSON with 'processed' or 'actions_processed' equal to 0 and a message or errors field indicating 'No actions provided'",
+        "The skill reports the round-trip test succeeded"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "Send a test POST to the Apps Script with a WRONG secret to verify that authentication is enforced. My email-triage-config.json is in the working folder. This is a LIVE test \u2014 actually send the request via Python.\n\nUse the real URL from the config file but send: {\"secret\": \"wrong-secret-12345\", \"actions\": []}",
+      "expected_output": "The skill should send the request and correctly interpret the authentication failure response from the Apps Script.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill reads email-triage-config.json to get the Apps Script URL",
+        "The skill uses Python urllib.request via Bash to send the POST with the wrong secret",
+        "The skill receives a response indicating authentication failure (e.g., 'Invalid or missing secret')",
+        "The skill correctly interprets this as a secret mismatch, not a network or deployment error",
+        "The skill does NOT report the health check or deployment as broken \u2014 the script is working, just rejecting the bad secret"
+      ]
+    }
+  ]
+}

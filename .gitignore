@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# User configuration (contains secrets)
+email-triage-config.json
+
+# User data
+triage-rules.md
+email-triage-log.md
+
+# Eval workspaces
+workspace/
+
+# Packaged output
+dist/

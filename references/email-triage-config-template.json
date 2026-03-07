@@ -1,0 +1,4 @@
+{
+  "apps_script_url": "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+  "apps_script_secret": "YOUR_SECRET_HERE"
+}
