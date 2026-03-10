@@ -2,9 +2,9 @@
 name: email-triage
 description: >
   Reads the user's Gmail inbox and classifies every email as Suspected Junk,
-  Action Needed, Informational, or Unknown based on a user-provided
-  triage-rules.md file. Then applies Gmail labels and archives junk via a
-  Google Apps Script web app.
+  Action Needed, Informational, Unknown, or a user-defined custom label based
+  on a user-provided triage-rules.md file. Then applies Gmail labels and
+  archives emails via a Google Apps Script web app.
 
   Use this skill whenever the user says "triage my email", "label my email",
   "sort my email", "clean up my inbox", "process my email", or anything that
@@ -33,10 +33,10 @@ access, and executes label/archive operations in seconds. Communication with
 the Apps Script uses Python `urllib.request` executed via Bash, which follows
 Apps Script's cross-origin redirects natively without CORS issues.
 
-The whole flow is designed around transparency. Every "Suspected Junk" and
-"Unknown" classification gets logged with reasoning so the user can audit
-decisions and correct mistakes. Over time this feedback loop makes the rules
-more accurate.
+The whole flow is designed around transparency. Every "Suspected Junk",
+"Unknown", and archived custom label classification gets logged with reasoning
+so the user can audit decisions and correct mistakes. Over time this feedback
+loop makes the rules more accurate.
 
 ---
 
@@ -105,6 +105,11 @@ Once you have the rules file, parse it carefully. Pay attention to:
 - The **mode** setting (review vs auto) — this controls whether you present
   results for approval or act immediately.
 - Each **rule** with its signals and exceptions.
+- The **Custom Labels** section — these define additional labels beyond the four
+  built-in ones (Suspected Junk, Action Needed, Informational, Unknown). Each
+  custom label specifies its own name, matching criteria, and archive behavior.
+  Custom labels are applied **before** the standard classification — if an email
+  matches a custom label rule, it gets that label instead of a built-in one.
 - The **Trusted Domains** list — senders from these domains are almost always
   kept.
 - The **Trusted Sources** list — specific senders or newsletters to keep.
@@ -114,15 +119,23 @@ Once you have the rules file, parse it carefully. Pay attention to:
 
 ## Step 2 — Scan the inbox
 
-Use `search_gmail_messages` with a query that excludes already-labeled emails:
+Use `search_gmail_messages` with a query that excludes already-labeled emails.
+Build the exclusion query dynamically by including the three built-in labels
+**plus** any custom labels defined in the `Custom Labels` section of
+`triage-rules.md`. For example, if the rules file defines a custom label
+`RSS: Newsletters`, the query becomes:
 
 ```
-in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational
+in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational -label:RSS-/-Newsletters
 ```
+
+Gmail label names with spaces become hyphenated in search queries, and nested
+labels use `-/-` as the separator (e.g., `RSS: Newsletters` → `RSS-/-Newsletters`).
+The colon-space in `RSS: Newsletters` maps to `-/-` because Gmail treats `:` in
+label names as a nesting separator.
 
 This filters out emails that were classified in a previous session so you only
-see new, unprocessed messages. (Gmail label names with spaces become hyphenated
-in search queries.)
+see new, unprocessed messages.
 
 The search results include sender, subject, and a snippet for each message.
 That's usually enough to classify an email. Only call `read_gmail_message` for
@@ -152,7 +165,12 @@ For every email that wasn't skipped, run it through the decision framework
 from the user's `triage-rules.md`. The framework typically works as a priority
 chain — check each condition in order and stop at the first match.
 
-Assign one of these labels:
+First, check the email against any **Custom Labels** defined in `triage-rules.md`.
+Custom label rules are evaluated before the built-in labels. If an email matches
+a custom label's criteria, assign that custom label and use the archive behavior
+specified for it — then move on to the next email without checking built-in labels.
+
+If no custom label matches, assign one of the built-in labels:
 
 | Label | Meaning |
 |---|---|
@@ -209,6 +227,7 @@ complete:
 > - Action Needed: Y
 > - Informational: Z
 > - Unknown: W
+> - [Custom Label Name]: C (include a line for each custom label that was applied)
 
 ---
 
@@ -241,6 +260,11 @@ and should be omitted.
       "messageId": "<gmail message ID>",
       "addLabels": ["Informational"],
       "archive": false
+    },
+    {
+      "messageId": "<gmail message ID>",
+      "addLabels": ["RSS: Newsletters"],
+      "archive": true
     }
   ]
 }
@@ -252,8 +276,14 @@ Key rules for building the plan:
   results. This is the unique identifier that the Apps Script uses to find the
   email.
 - **addLabels**: Always a single-element array with the classification label.
-- **archive**: Set to `true` only for Suspected Junk. All other labels keep the
-  email in the inbox.
+  For custom labels, use the exact label name from the Custom Labels section
+  of `triage-rules.md` (e.g., `"RSS: Newsletters"`). The Apps Script will
+  create nested labels automatically — `RSS: Newsletters` becomes a
+  `Newsletters` label nested under an `RSS` parent label in Gmail.
+- **archive**: Set to `true` for Suspected Junk and for any custom label whose
+  rules specify archiving. Set to `false` for Action Needed, Informational,
+  and any custom label that should stay in the inbox. Always check the custom
+  label's definition in `triage-rules.md` for its archive behavior.
 - **Unknown emails**: Omit from the action plan entirely — they don't get a
   label or archive action.
 
@@ -337,13 +367,18 @@ correctly.
 
 ### Verification procedure
 
-1. **Run the exclusion query.** Use `search_gmail_messages` with:
+1. **Run the exclusion query.** Use `search_gmail_messages` with a query that
+   excludes all built-in labels **and** all custom labels (same dynamic query
+   from Step 2):
 
    ```
-   in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational
+   in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational -label:<custom-label-1> ...
    ```
 
-   This surfaces any inbox emails that are missing all three labels.
+   This surfaces any inbox emails that are missing all labels. Note: emails
+   that were archived (Suspected Junk or custom labels with archive behavior)
+   won't appear in this query since they're no longer `in:inbox` — that's
+   expected.
 
 2. **Compare against your classification list.** Cross-reference the search
    results with the emails you classified in this session:
@@ -392,11 +427,13 @@ The log is a Markdown table with these columns:
 
 ### What to log
 
-Log all emails classified as **Suspected Junk** or **Unknown**. These are the
-decisions most likely to need user review.
+Log all emails classified as **Suspected Junk**, **Unknown**, or **any custom
+label that archives the email**. These are the decisions most likely to need
+user review because the email is removed from the inbox.
 
 You don't need to log Action Needed or Informational emails — those stay in the
-inbox and the user will see them naturally.
+inbox and the user will see them naturally. Custom labels that don't archive
+also don't need to be logged.
 
 ### Append behavior
 
@@ -404,6 +441,58 @@ Add new entries at the **top** of the table (newest first), below the header
 row. If the file doesn't exist yet, create it with the header row and then add
 entries. If the file already has entries from previous sessions, preserve them
 and add new rows above.
+
+---
+
+## Step 7 — Reflect and log improvements
+
+After every run, briefly review what happened and decide whether anything is
+worth recording. The goal is to capture issues and opportunities that the user
+would otherwise never see because the skill runs unattended.
+
+### When to write an entry
+
+Add an entry to `improvement-log.md` in the user's working folder **only** when
+one of these occurred during the run:
+
+- **Error**: An Apps Script call failed, a label wasn't applied, verification
+  caught missing labels, a retry was needed, or the health check returned
+  something unexpected.
+- **Reliability concern**: Something worked but felt fragile — e.g., a
+  classification was borderline and could easily go wrong next time, or the
+  batch hit exactly 25 emails suggesting more were left unprocessed.
+- **Efficiency opportunity**: You noticed a pattern that could be handled more
+  cheaply — e.g., the same sender keeps showing up as Unknown and should
+  probably get a rule, or a large fraction of emails were from one source that
+  could be filtered earlier.
+- **Rule refinement**: You classified something but weren't confident, or you
+  noticed a gap in the rules — a new category of email that doesn't fit any
+  existing rule or custom label.
+
+If the run was clean and unremarkable, **skip this step entirely**. The log
+should be high-signal, not a diary.
+
+### How to write an entry
+
+Read the template at `references/improvement-log-template.md` for the exact
+format. Each entry includes:
+
+- **Date and short title** — e.g., "2026-03-09 — Apps Script timeout on large batch"
+- **Category** — one of: `error`, `reliability`, `efficiency`, `rule-refinement`
+- **Run summary** — how many emails were processed, labeled, archived
+- **What happened** — specific details: email subjects, sender patterns, error
+  messages, unexpected classifications
+- **What was tried** — if you took corrective action (retry, reclassify, skip),
+  what you did and whether it worked
+- **Proposed fix** — a concrete suggestion: a rule update, a SKILL.md change,
+  a config tweak, or an investigation the user should run
+- **Priority** — `low`, `medium`, or `high`
+
+### Append behavior
+
+Add new entries at the **top** of the file (newest first), below the header.
+If `improvement-log.md` doesn't exist yet, create it by copying the template
+from `references/improvement-log-template.md` and then adding your entry.
 
 ---
 
@@ -430,4 +519,5 @@ should approve rule changes since they affect all future triage sessions.
 | `references/triage-rules-template.md` | Blank template the user copies and customizes with their own rules. Share this if `triage-rules.md` is missing from the working folder. |
 | `references/apps-script-setup.md` | Step-by-step guide for deploying the Gmail Actions Apps Script. Share this if `email-triage-config.json` is missing. |
 | `references/email-triage-config-template.json` | Template for the config file the user creates in their working folder. |
+| `references/improvement-log-template.md` | Format template for the improvement log. Copy this to create `improvement-log.md` in the working folder on first use. |
 | `scripts/gmail-calendar-actions.gs` | Google Apps Script source code. The user pastes this into a new Apps Script project and deploys it as a web app. |

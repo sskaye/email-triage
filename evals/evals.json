@@ -40,7 +40,7 @@
         "Email 1 (randomcorp marketing) is classified as Suspected Junk matching Rule 1 (Vendor Solicitations) due to sales language and demo offer",
         "Email 2 (jane@testcompany.com) is classified as Informational or Action Needed \u2014 NOT Suspected Junk \u2014 because testcompany.com is a Trusted Domain",
         "Email 3 (Zoom recording) is classified as Suspected Junk matching Rule 3 (Automated Platform Notifications) as a Zoom recording notification",
-        "Email 4 (Substack newsletter) is classified as Informational \u2014 NOT Suspected Junk \u2014 because *@substack.com is a Trusted Source",
+        "Email 4 (Substack newsletter) is classified with the custom label 'RSS: Newsletters' \u2014 NOT Suspected Junk and NOT Informational \u2014 because *@substack.com matches the Custom Labels RSS: Newsletters rule, which takes priority over built-in labels",
         "Email 5 (Amazon shipping) is classified as Suspected Junk matching Rule 4 (Booking Confirmations & Order Notifications)",
         "Email 6 (friend resume review) is classified as Action Needed because it explicitly requests action from the user",
         "Email 7 (mystery.org follow-up) is classified as Unknown \u2014 NOT Suspected Junk \u2014 because it's ambiguous and the skill should err on the side of keeping",
@@ -94,14 +94,14 @@
     {
       "id": 7,
       "prompt": "I have the following emails. Please classify each one according to my triage-rules.md. Do NOT use Gmail or Chrome tools.\n\nEmail 1: From: editor@mattlevine.substack.com, Subject: 'Money Stuff: Banks Are Still Banking', Snippet: 'Good morning. Today we discuss...' (contains unsubscribe link)\n\nEmail 2: From: digest@medium.com, Subject: 'Your Daily Medium Digest', Snippet: 'Top stories for you today...' (contains unsubscribe link)\n\nEmail 3: From: hello@randomnewsletter.com, Subject: 'Weekly Roundup #47', Snippet: 'This week in tech...' (contains unsubscribe link, sent via Mailchimp)",
-      "expected_output": "Tests Trusted Sources exception handling \u2014 Substack and Money Stuff should be kept, while other newsletters should be archived.",
+      "expected_output": "Tests Custom Label handling \u2014 Substack and Money Stuff should get 'RSS: Newsletters' custom label, while other newsletters should be archived as Suspected Junk.",
       "files": [
         "triage-rules-review.md"
       ],
       "expectations": [
-        "Email 1 (Money Stuff from substack.com) is NOT classified as Suspected Junk \u2014 it matches BOTH Trusted Source rules: *@substack.com pattern AND Money Stuff newsletter explicitly",
-        "Email 2 (Medium digest) is classified as Suspected Junk matching Rule 2 or Rule 5 \u2014 Medium digest is not a Trusted Source and matches newsletter/social media signals",
-        "Email 3 (random newsletter via Mailchimp) is classified as Suspected Junk matching Rule 2 \u2014 contains unsubscribe link, sent via Mailchimp, not a Trusted Source"
+        "Email 1 (Money Stuff from substack.com) is classified with custom label 'RSS: Newsletters' \u2014 it matches BOTH Custom Label criteria: *@substack.com pattern AND Money Stuff newsletter with subject containing 'Money Stuff'. It should NOT be Suspected Junk or Informational",
+        "Email 2 (Medium digest) is classified as Suspected Junk matching Rule 2 or Rule 5 \u2014 Medium digest does not match any Custom Label and matches newsletter/social media signals",
+        "Email 3 (random newsletter via Mailchimp) is classified as Suspected Junk matching Rule 2 \u2014 contains unsubscribe link, sent via Mailchimp, does not match any Custom Label"
       ]
     },
     {
@@ -149,14 +149,14 @@
     },
     {
       "id": 11,
-      "prompt": "I just reviewed the triage results and found some mistakes:\n1. The email from 'newsletter@importantpartner.com' with subject 'Monthly Update' was classified as Suspected Junk, but I actually want to keep emails from importantpartner.com \u2014 they're a key vendor.\n2. The Substack email from 'boring@substack.com' with subject 'Boring Company Weekly' was kept because of the *@substack.com trusted source rule, but I actually don't want that specific newsletter.\n\nCan you update my triage-rules.md to fix these for future sessions?",
+      "prompt": "I just reviewed the triage results and found some mistakes:\n1. The email from 'newsletter@importantpartner.com' with subject 'Monthly Update' was classified as Suspected Junk, but I actually want to keep emails from importantpartner.com \u2014 they're a key vendor.\n2. The Substack email from 'boring@substack.com' with subject 'Boring Company Weekly' was labeled 'RSS: Newsletters' because of the *@substack.com custom label rule, but I actually don't want that specific newsletter going to my RSS reader \u2014 it should just be archived as junk.\n\nCan you update my triage-rules.md to fix these for future sessions?",
       "expected_output": "The skill should propose specific rule changes and explain them before editing.",
       "files": [
         "triage-rules-review.md"
       ],
       "expectations": [
         "The skill proposes adding importantpartner.com to the Trusted Domains list",
-        "The skill proposes adding an exception or exclusion for boring@substack.com specifically, while keeping the general *@substack.com Trusted Source rule",
+        "The skill proposes adding an exception or exclusion for boring@substack.com specifically in the Custom Labels RSS: Newsletters section, while keeping the general *@substack.com matching criteria",
         "The skill explains what each proposed change would do and why",
         "The skill asks for user approval before making changes to triage-rules.md",
         "The skill does NOT silently edit the rules file without explaining the changes first"
@@ -179,7 +179,7 @@
     {
       "id": 13,
       "prompt": "Triage my email. Use my triage-rules.md from the working folder. When scanning the inbox, explain what Gmail search query you would use and why.",
-      "expected_output": "The skill should use the exclusion query to filter out already-labeled emails.",
+      "expected_output": "The skill should use the exclusion query to filter out already-labeled emails, including custom labels.",
       "files": [
         "triage-rules-auto.md"
       ],
@@ -188,6 +188,7 @@
         "The search query includes exclusion filters: '-label:Suspected-Junk' or equivalent",
         "The search query includes exclusion filters: '-label:Action-Needed' or equivalent",
         "The search query includes exclusion filters: '-label:Informational' or equivalent",
+        "The search query includes exclusion filter for the custom label: '-label:RSS-/-Newsletters' or equivalent Gmail search syntax for the nested RSS: Newsletters label",
         "The skill explains that the exclusion filters prevent re-processing emails from previous sessions"
       ]
     },
@@ -285,8 +286,8 @@
     },
     {
       "id": 20,
-      "prompt": "After labeling emails via the Apps Script, I need to verify the labels were applied. The Apps Script reported all 5 actions succeeded. Now I run the verification query.\n\nSimulate that search_gmail_messages with query 'in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational' returns these 3 emails:\n\n1. messageId: 'msg_unknown1', From: mystery@example.com, Subject: 'Hello' \u2014 this was classified as Unknown (intentionally not labeled)\n2. messageId: 'msg_missed1', From: spam@junk.com, Subject: 'Buy now!' \u2014 this was classified as Suspected Junk but the label is missing\n3. messageId: 'msg_new1', From: boss@company.com, Subject: 'New meeting' \u2014 this is a NEW email that arrived after triage started (not in the classification list)\n\nDescribe the verification logic and what actions you would take.",
-      "expected_output": "The skill should correctly distinguish between intentionally unlabeled (Unknown), missed labels, and new emails.",
+      "prompt": "After labeling emails via the Apps Script, I need to verify the labels were applied. The Apps Script reported all 5 actions succeeded. Now I run the verification query.\n\nSimulate that search_gmail_messages with query 'in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational -label:RSS-/-Newsletters' returns these 3 emails:\n\n1. messageId: 'msg_unknown1', From: mystery@example.com, Subject: 'Hello' \u2014 this was classified as Unknown (intentionally not labeled)\n2. messageId: 'msg_missed1', From: spam@junk.com, Subject: 'Buy now!' \u2014 this was classified as Suspected Junk but the label is missing\n3. messageId: 'msg_new1', From: boss@company.com, Subject: 'New meeting' \u2014 this is a NEW email that arrived after triage started (not in the classification list)\n\nDescribe the verification logic and what actions you would take.",
+      "expected_output": "The skill should correctly distinguish between intentionally unlabeled (Unknown), missed labels, and new emails. The verification query should include custom label exclusions.",
       "files": [
         "triage-rules-auto.md"
       ],
@@ -296,7 +297,8 @@
         "The skill proposes re-sending msg_missed1 to the Apps Script with its original classification (Suspected Junk, archive: true)",
         "The skill recognizes msg_new1 as a new email not in the original classification list \u2014 it should NOT be labeled in this session",
         "The skill would re-verify after the retry to confirm msg_missed1 is now labeled",
-        "The skill reports verification results to the user including how many succeeded on first pass vs needed retry"
+        "The skill reports verification results to the user including how many succeeded on first pass vs needed retry",
+        "The verification query includes custom label exclusions (e.g., -label:RSS-/-Newsletters) alongside the built-in label exclusions"
       ]
     },
     {
@@ -376,6 +378,165 @@
         "The skill receives a response indicating authentication failure (e.g., 'Invalid or missing secret')",
         "The skill correctly interprets this as a secret mismatch, not a network or deployment error",
         "The skill does NOT report the health check or deployment as broken \u2014 the script is working, just rejecting the bad secret"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "I have the following emails in my inbox. Please classify each one according to my triage-rules.md (which is in the working folder). Do NOT use Gmail or Chrome tools \u2014 just classify based on the information I provide and present results in review mode format.\n\nEmail 1: From: writer@example.substack.com, Subject: 'The Weekly Deep Dive: AI Edition', Snippet: 'This week we explore the latest in artificial intelligence...' (contains unsubscribe link)\n\nEmail 2: From: noreply@mail.bloombergbusiness.com, Subject: 'Money Stuff: Hedge Funds Are Hedging', Snippet: 'Good morning. Today we discuss hedge fund strategies...' (contains unsubscribe link)\n\nEmail 3: From: noreply@substack.com, Subject: 'Your password has been changed', Snippet: 'The password for your Substack account was recently changed...'\n\nEmail 4: From: author@cooking.substack.com, Subject: 'New post: Summer Recipes', Snippet: 'Here are my favorite summer recipes...' (contains unsubscribe link)\n\nEmail 5: From: noreply@mail.bloombergbusiness.com, Subject: 'Bloomberg Markets: Daily Wrap', Snippet: 'Markets closed higher today...' (contains unsubscribe link, NOT Money Stuff)",
+      "expected_output": "Tests Custom Label classification for RSS: Newsletters \u2014 Substack newsletters and Money Stuff get the custom label, but Substack account notifications and non-Money-Stuff Bloomberg emails do not.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "Email 1 (Substack newsletter from example.substack.com) is classified with custom label 'RSS: Newsletters' \u2014 matches *@substack.com pattern and is a newsletter post",
+        "Email 2 (Money Stuff from Bloomberg) is classified with custom label 'RSS: Newsletters' \u2014 matches Money Stuff criteria (Bloomberg sender with 'Money Stuff' in subject)",
+        "Email 3 (Substack password change) is NOT classified as 'RSS: Newsletters' \u2014 it's an account notification (password reset), which is an exception to the custom label rule. Should be classified with a built-in label instead",
+        "Email 4 (Substack newsletter from cooking.substack.com) is classified with custom label 'RSS: Newsletters' \u2014 matches *@substack.com pattern and is a newsletter post",
+        "Email 5 (Bloomberg Markets, NOT Money Stuff) is NOT classified as 'RSS: Newsletters' \u2014 the subject does not contain 'Money Stuff'. Should be classified as Suspected Junk via Rule 2 (newsletter with unsubscribe link)"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "I've classified these emails and now need to build the action plan for labeling. Do NOT actually run any commands or tools \u2014 just show me the JSON action plan you would send to the Apps Script. Here are the classifications:\n\n1. messageId: 'msg_sub111', From: writer@example.substack.com, Label: RSS: Newsletters (archive)\n2. messageId: 'msg_money222', From: noreply@mail.bloombergbusiness.com, Label: RSS: Newsletters (archive)\n3. messageId: 'msg_spam333', From: spam@junk.com, Label: Suspected Junk (archive)\n4. messageId: 'msg_boss444', From: boss@testcompany.com, Label: Action Needed\n5. messageId: 'msg_unknown555', From: mystery@example.org, Label: Unknown\n\nAssume the Apps Script URL is https://script.google.com/macros/s/EXAMPLE/exec and the secret is test-secret-456.",
+      "expected_output": "A correctly structured JSON action plan that includes custom label entries with proper archive behavior.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The JSON payload includes a 'secret' field set to 'test-secret-456'",
+        "msg_sub111 has addLabels: ['RSS: Newsletters'] and archive: true \u2014 custom label with archive behavior from triage-rules.md",
+        "msg_money222 has addLabels: ['RSS: Newsletters'] and archive: true \u2014 custom label with archive behavior",
+        "msg_spam333 has addLabels: ['Suspected Junk'] and archive: true",
+        "msg_boss444 has addLabels: ['Action Needed'] and archive: false",
+        "msg_unknown555 (Unknown) is NOT included in the actions array",
+        "The actions array has exactly 4 entries (not 5, since Unknown is excluded)",
+        "The custom label name 'RSS: Newsletters' is used exactly as defined in triage-rules.md (with the colon and space)"
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "After triaging my email, please create or update the email-triage-log.md file. Here are the classification results to log:\n\n1. From: SpammerInc, Subject: 'Buy our product!', Label: Suspected Junk, Rule: Rule 1, Reason: Cold outreach\n2. From: Matt Levine, Subject: 'Money Stuff: Banks Again', Label: RSS: Newsletters, Rule: Custom Label \u2014 RSS: Newsletters, Reason: Money Stuff newsletter from Bloomberg matching custom label\n3. From: CoolWriter, Subject: 'Weekly Deep Dive', Label: RSS: Newsletters, Rule: Custom Label \u2014 RSS: Newsletters, Reason: Substack newsletter matching *@substack.com custom label\n4. From: boss@testcompany.com, Subject: 'Review needed', Label: Action Needed, Rule: Trusted Domain, Reason: From trusted domain\n5. From: colleague@testcompany.com, Subject: 'FYI: notes', Label: Informational, Rule: Trusted Domain, Reason: Informational from trusted domain\n\nThere is no existing log file \u2014 create a new one.",
+      "expected_output": "A new email-triage-log.md that logs Suspected Junk, Unknown, AND custom-labeled emails that were archived (RSS: Newsletters), but NOT Action Needed or Informational.",
+      "files": [],
+      "expectations": [
+        "The log file is created as email-triage-log.md",
+        "The log includes the Suspected Junk entry for SpammerInc",
+        "The log includes the RSS: Newsletters entry for Matt Levine (Money Stuff) \u2014 because this custom label archives the email",
+        "The log includes the RSS: Newsletters entry for CoolWriter (Substack) \u2014 because this custom label archives the email",
+        "The log does NOT include the Action Needed entry for boss@testcompany.com",
+        "The log does NOT include the Informational entry for colleague@testcompany.com",
+        "The Label column shows 'RSS: Newsletters' for the custom-labeled entries",
+        "The Feedback column is left empty for user annotation"
+      ]
+    },
+    {
+      "id": 29,
+      "prompt": "I have the following emails in my inbox. Please classify each one according to my triage-rules.md (which is in the working folder). Do NOT use Gmail or Chrome tools. The rules are in auto mode.\n\nEmail 1: From: writer@techblog.substack.com, Subject: 'New post: The Future of Computing', Snippet: 'In this week's edition...' (contains unsubscribe link)\n\nEmail 2: From: noreply@mail.bloombergbusiness.com, Subject: 'Money Stuff: Crypto Is Cryptic', Snippet: 'Good morning. Crypto markets...' (contains unsubscribe link)\n\nEmail 3: From: sales@outreach.io, Subject: 'Quick demo?', Snippet: 'Are you the right person...'\n\nEmail 4: From: boss@testcompany.com, Subject: 'Urgent: Budget review', Snippet: 'Please review by EOD...'",
+      "expected_output": "Auto-mode summary showing processed counts including custom label category alongside built-in labels.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "Email 1 (Substack newsletter) is classified with custom label 'RSS: Newsletters'",
+        "Email 2 (Money Stuff) is classified with custom label 'RSS: Newsletters'",
+        "Email 3 (cold outreach) is classified as Suspected Junk",
+        "Email 4 (boss urgent) is classified as Action Needed",
+        "Results are presented in auto-mode format with summary counts that include the custom label category (e.g., RSS: Newsletters: 2, Suspected Junk: 1, Action Needed: 1)",
+        "The skill does NOT present a table for approval (auto mode skips the approval step)"
+      ]
+    },
+    {
+      "id": 30,
+      "prompt": "Please read my triage-rules.md and explain the Custom Labels section. What custom labels are defined, what do they match, and what happens to matching emails?",
+      "expected_output": "The skill correctly identifies and explains the Custom Labels section including RSS: Newsletters.",
+      "files": [
+        "triage-rules-review.md"
+      ],
+      "expectations": [
+        "The skill identifies the Custom Labels section in triage-rules.md",
+        "The skill explains that 'RSS: Newsletters' is defined as a custom label",
+        "The skill describes the matching criteria: *@substack.com domains and Money Stuff newsletter from Bloomberg",
+        "The skill explains that matching emails are labeled 'RSS: Newsletters' and archived",
+        "The skill mentions the exceptions: Substack account notifications (password reset, billing) are excluded",
+        "The skill explains that custom labels are evaluated before built-in labels in the Decision Framework"
+      ]
+    },
+    {
+      "id": 31,
+      "prompt": "You just finished triaging my email. Here's what happened during the run:\n\n- Processed 12 emails: 4 Suspected Junk, 3 Action Needed, 3 Informational, 2 RSS: Newsletters\n- All Apps Script calls succeeded on the first try\n- Verification passed — all labels applied correctly\n- No borderline classifications, no retries needed\n\nNow perform Step 7 from the skill: reflect on the run and decide whether to write to improvement-log.md. Do NOT use Gmail or Chrome tools — just explain your reasoning and what you would do.",
+      "expected_output": "The skill should recognize this as a clean run and skip writing to improvement-log.md entirely.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill explicitly decides NOT to write an entry to improvement-log.md",
+        "The skill explains that the run was clean with no errors, borderline classifications, or notable patterns",
+        "The skill references the Step 7 guidance that clean runs should be skipped to keep the log high-signal",
+        "The skill does NOT create or modify improvement-log.md"
+      ]
+    },
+    {
+      "id": 32,
+      "prompt": "You just finished triaging my email. Here's what happened during the run:\n\n- Processed 15 emails: 6 Suspected Junk, 2 Action Needed, 3 Informational, 1 RSS: Newsletters, 3 Unknown\n- Apps Script POST succeeded (all labels applied)\n- BUT verification found 2 emails (msg_abc from spam@junk.com 'Buy Now' and msg_def from promo@deals.com 'Flash Sale') that were classified as Suspected Junk but labels were NOT applied\n- Retry succeeded for both after re-sending to the Apps Script\n- All labels verified on second pass\n\nNow perform Step 7 from the skill. Write the improvement-log.md entry you would create. Use the format from references/improvement-log-template.md.",
+      "expected_output": "The skill should write an error entry documenting the verification failure and retry.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill decides to write an entry because verification caught missing labels (an error occurred)",
+        "The entry has the correct format: date, title, category, run summary, what happened, what was tried, proposed fix, priority",
+        "The category is 'error' (label application failed and needed retry)",
+        "The 'What happened' section mentions the specific emails that failed (msg_abc and msg_def) and their subjects",
+        "The 'What was tried' section describes the retry and that it succeeded on the second pass",
+        "The 'Proposed fix' section suggests a concrete investigation or change (e.g., check if certain senders/subjects cause issues, monitor for recurrence, or check Apps Script logs)",
+        "The run summary mentions 15 emails processed with the label breakdown"
+      ]
+    },
+    {
+      "id": 33,
+      "prompt": "You just finished triaging my email. Here's what happened during the run:\n\n- Processed 20 emails: 8 Suspected Junk, 3 Action Needed, 2 Informational, 2 RSS: Newsletters, 5 Unknown\n- All labeling succeeded, no errors\n- The 5 Unknown emails were: mystery1@example.org 'Quick question', mystery2@example.org 'Following up', mystery3@example.org 'Re: our conversation', noreply@newservice.com 'Welcome to NewService', noreply@anotherservice.com 'Verify your email'\n\nNow perform Step 7 from the skill. Write the improvement-log.md entry you would create.",
+      "expected_output": "The skill should write an efficiency or rule-refinement entry noting the high number of Unknown classifications and suggesting rule improvements.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill decides to write an entry because 5 out of 20 emails (25%) were classified as Unknown, which is a notable pattern",
+        "The category is 'efficiency' or 'rule-refinement' (not 'error' since nothing broke)",
+        "The entry follows the correct format from the template",
+        "The 'What happened' section identifies the pattern: multiple Unknown emails that could potentially be covered by rules",
+        "The 'Proposed fix' section suggests concrete rule additions — e.g., adding a rule for welcome/verification emails from new services (which are likely automated), or investigating the mystery@example.org sender pattern",
+        "The entry does NOT treat this as an error — the run completed successfully, this is about improving coverage"
+      ]
+    },
+    {
+      "id": 34,
+      "prompt": "You just finished triaging my email. Here's what happened during the run:\n\n- Processed 25 emails (hit the batch limit): 10 Suspected Junk, 5 Action Needed, 4 Informational, 3 RSS: Newsletters, 3 Unknown\n- All labeling succeeded, no errors\n- After processing, the inbox query still returned 18 more unprocessed emails\n- One classification was borderline: an email from 'updates@partnerfirm.com' with subject 'Monthly Partner Report' contained an unsubscribe link (Rule 2 signal) but also contained what looked like a personalized report with the user's name. Classified as Informational but could reasonably be Suspected Junk.\n\nNow perform Step 7 from the skill. Write the improvement-log.md entry you would create.",
+      "expected_output": "The skill should write an entry covering both the reliability concern (batch limit hit with many remaining) and the borderline classification.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill decides to write an entry because there are at least two noteworthy observations",
+        "The entry mentions the batch limit being hit with 18 emails still unprocessed as a reliability concern",
+        "The entry mentions the borderline classification of updates@partnerfirm.com as a rule-refinement issue",
+        "The 'Proposed fix' suggests something concrete for the borderline case — e.g., adding partnerfirm.com to Trusted Domains, adding an exception to Rule 2 for personalized reports, or flagging for user review",
+        "The entry follows the correct format from the template"
+      ]
+    },
+    {
+      "id": 35,
+      "prompt": "You just finished triaging my email. Here's what happened during the run:\n\n- Processed 8 emails: 3 Suspected Junk, 2 Action Needed, 1 Informational, 2 RSS: Newsletters\n- The Apps Script health check initially returned an HTML error page instead of JSON\n- Waited 10 seconds and retried — health check then returned {\"status\":\"ok\"}\n- All subsequent labeling and verification succeeded normally\n\nNow perform Step 7 from the skill. Write the improvement-log.md entry you would create.",
+      "expected_output": "The skill should write an entry documenting the transient health check failure as a reliability concern.",
+      "files": [
+        "triage-rules-auto.md"
+      ],
+      "expectations": [
+        "The skill decides to write an entry because the health check had a transient failure",
+        "The category is 'reliability' (it recovered, but the transient failure is worth noting)",
+        "The 'What happened' section describes the initial HTML error response from the health check",
+        "The 'What was tried' section mentions the retry after 10 seconds and that it succeeded",
+        "The 'Proposed fix' section suggests monitoring for recurrence, or notes that Apps Script cold starts can cause transient failures",
+        "The priority is 'low' or 'medium' since it self-resolved but could indicate instability"
       ]
     }
   ]

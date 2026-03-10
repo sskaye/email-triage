@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "email-triage", "runs": [{"id": "eval-3-with_skill", "prompt": "Classify 7 emails including Substack newsletter (should get RSS: Newsletters custom label)", "eval_id": 3, "outputs": [{"name": "classification.md", "type": "text", "content": "# Email Classification Results \u2014 Review Mode\n\nGenerated: 2026-03-09\nMode: Review (awaiting user approval)\nTotal emails processed: 7\n\n---\n\n## Classification Summary Table\n\n| From | Subject | Label | Rule | Reasoning |\n|---|---|---|---|---|\n| marketing@randomcorp.com | Boost your sales with our AI tool \u2014 free demo! | Suspected Junk | Rule 1: Vendor Solicitations & Cold Outreach | Subject contains \"free demo\", body contains sales language (\"save you time\", \"show you how\"), from non-trusted domain |\n| jane@testcompany.com | Q1 planning meeting notes | Action Needed | Trusted Domain | Sender from trusted domain testcompany.com; content is internal meeting notes requiring review |\n| no-reply@zoom.us | Cloud Recording - Meeting Summary Available | Suspected Junk | Rule 3: Automated Platform Notifications | Zoom recording/meeting summary notification; these are routine and always archived per rules |\n| newsletters@substack.com | Weekly digest from The Browser | RSS: Newsletters | Custom Label: RSS: Newsletters | Sender matches substack.com domain; applies custom label and archives per label rules |\n| noreply@amazon.com | Your Amazon order has shipped | Suspected Junk | Rule 4: Booking Confirmations & Order Notifications | Automated shipping notification from Amazon; simple confirmation requiring no action |\n| friend@gmail.com | Can you review my resume? | Action Needed | User action required | Email requests user response and action (resume review); requires keeping in inbox |\n| unknown@mystery.org | Meeting follow-up | Unknown | No clear match | Email content is vague and sender unknown; insufficient signals to confidently match any rule; classify as Unknown to avoid false positives |\n\n---\n\n## Results Breakdown\n\n- **Suspected Junk**: 3 emails (marketing@randomcorp.com, no-reply@zoom.us, noreply@amazon.com)\n- **Action Needed**: 2 emails (jane@testcompany.com, friend@gmail.com)\n- **RSS: Newsletters**: 1 email (newsletters@substack.com)\n- **Unknown**: 1 email (unknown@mystery.org)\n\n---\n\n## Next Steps\n\nPlease review the classifications above. You can:\n\n1. **Approve all** \u2014 I will finalize these labels and archive the emails as classified\n2. **Reject specific classifications** \u2014 Tell me which emails you'd like reclassified and why\n3. **Ask questions** \u2014 I can explain the reasoning for any email in more detail\n\nWhat would you like to do?\n"}], "grading": {"expectations": [{"text": "Email 1 (randomcorp marketing) is classified as Suspected Junk matching Rule 1 (Vendor Solicitations) due to sales language and demo offer", "passed": true, "evidence": "Output shows: 'marketing@randomcorp.com | Boost your sales... | Suspected Junk | Rule 1: Vendor Solicitations & Cold Outreach'"}, {"text": "Email 2 (jane@testcompany.com) is classified as Informational or Action Needed \u2014 NOT Suspected Junk \u2014 because testcompany.com is a Trusted Domain", "passed": true, "evidence": "Output shows: 'jane@testcompany.com | Q1 planning meeting notes | Action Needed | Trusted Domain'"}, {"text": "Email 3 (Zoom recording) is classified as Suspected Junk matching Rule 3 (Automated Platform Notifications) as a Zoom recording notification", "passed": true, "evidence": "Output shows: 'no-reply@zoom.us | Cloud Recording... | Suspected Junk | Rule 3: Automated Platform Notifications'"}, {"text": "Email 4 (Substack newsletter) is classified with the custom label 'RSS: Newsletters' \u2014 NOT Suspected Junk and NOT Informational \u2014 because *@substack.com matches the Custom Labels RSS: Newsletters rule, which takes priority over built-in labels", "passed": true, "evidence": "Output shows: 'newsletters@substack.com | Weekly digest from The Browser | RSS: Newsletters | Custom Label: RSS: Newsletters'"}, {"text": "Email 5 (Amazon shipping) is classified as Suspected Junk matching Rule 4 (Booking Confirmations & Order Notifications)", "passed": true, "evidence": "Output shows: 'noreply@amazon.com | Your Amazon order has shipped | Suspected Junk | Rule 4: Booking Confirmations & Order Notifications'"}, {"text": "Email 6 (friend resume review) is classified as Action Needed because it explicitly requests action from the user", "passed": true, "evidence": "Output shows: 'friend@gmail.com | Can you review my resume? | Action Needed | User action required'"}, {"text": "Email 7 (mystery.org follow-up) is classified as Unknown \u2014 NOT Suspected Junk \u2014 because it's ambiguous and the skill should err on the side of keeping", "passed": true, "evidence": "Output shows: 'unknown@mystery.org | Meeting follow-up | Unknown | No clear match'"}, {"text": "Results are presented in a review-mode table format with columns for From, Subject, Label, Rule, and Reasoning", "passed": true, "evidence": "Output contains table header: '| From | Subject | Label | Rule | Reasoning |'"}, {"text": "The skill waits for user approval before proceeding to labeling (review mode behavior)", "passed": true, "evidence": "Output ends with: 'Please review the classifications above. You can: 1. Approve all... 2. Reject specific classifications... 3. Ask questions...'"}], "summary": {"passed": 9, "failed": 0, "total": 9, "pass_rate": 1.0}}}, {"id": "eval-7-with_skill", "prompt": "Classify Money Stuff and other newsletters (custom label vs Suspected Junk)", "eval_id": 7, "outputs": [{"name": "classification.md", "type": "text", "content": "# Email Classification Results\n\n**Date:** 2026-03-09\n\n**Mode:** Review (as specified in triage-rules.md)\n\n**Total emails processed:** 3\n\n---\n\n## Classification Summary\n\n| From | Subject | Label | Rule | Reasoning | Archive |\n|---|---|---|---|---|---|\n| editor@mattlevine.substack.com | Money Stuff: Banks Are Still Banking | RSS: Newsletters | Custom Label: RSS: Newsletters | Matches Money Stuff newsletter criteria from Substack domain. Custom labels are evaluated first in the decision framework. | Yes |\n| digest@medium.com | Your Daily Medium Digest | Suspected Junk | Rule 5: Social Media & Community Notifications | Email from Medium (social media platform) with \"digest\" in subject line. Matches social media notification pattern. Contains unsubscribe link confirming newsletter/marketing nature. | Yes |\n| hello@randomnewsletter.com | Weekly Roundup #47 | Suspected Junk | Rule 2: Newsletters & Marketing Emails | Matches newsletter pattern: hello@ sender address pattern, \"Weekly Roundup\" in subject, unsubscribe link present, sent via Mailchimp (bulk email platform). Not from trusted domain or trusted source. | Yes |\n\n---\n\n## Detailed Classification Reasoning\n\n### Email 1: Money Stuff Newsletter\n- **From:** editor@mattlevine.substack.com\n- **Subject:** Money Stuff: Banks Are Still Banking\n- **Signals matched:**\n  - Substack domain (@substack.com)\n  - Subject contains \"Money Stuff\"\n  - Contains unsubscribe link\n- **Decision:** Applied **Custom Label \"RSS: Newsletters\"** (Step 1 of Decision Framework)\n- **Archive behavior:** Yes (as specified in Custom Labels section)\n- **Rationale:** This email matches the custom label rule for \"RSS: Newsletters\" before standard rules are evaluated. The rule explicitly includes \"Money Stuff newsletter by Matt Levine\" and specifies archiving after labeling. This email will be tagged for the user's RSS reader pipeline.\n\n### Email 2: Medium Digest\n- **From:** digest@medium.com\n- **Subject:** Your Daily Medium Digest\n- **Signals matched:**\n  - Sender from Medium (social media/content platform)\n  - Subject contains \"digest\" (Rule 5 signal)\n  - Contains unsubscribe link (Rule 2 signal)\n  - Not from trusted domain (testcompany.com)\n  - Not from trusted sources list\n- **Decision:** Applied **Suspected Junk** label\n- **Matched rule:** Rule 5 (Social Media & Community Notifications) - \"From LinkedIn, Twitter/X, Facebook, Reddit, Quora, Medium... Subject contains: 'digest'\"\n- **Archive behavior:** Yes\n- **Rationale:** Email clearly matches the social media notification pattern. The digest@ address pattern and \"digest\" subject line are explicit signals in Rule 5. As a routine community digest email with no personalization or action required, it should be archived.\n\n### Email 3: Random Newsletter\n- **From:** hello@randomnewsletter.com\n- **Subject:** Weekly Roundup #47\n- **Signals matched:**\n  - From address pattern: hello@ (marketing pattern per Rule 2)\n  - Subject contains \"Weekly Roundup\" (newsletter signal per Rule 2)\n  - Contains unsubscribe link (primary Rule 2 signal)\n  - Sent via Mailchimp (bulk email platform per Rule 2)\n  - Not from trusted domain (testcompany.com)\n  - Not from trusted sources list\n- **Decision:** Applied **Suspected Junk** label\n- **Matched rule:** Rule 2 (Newsletters & Marketing Emails)\n- **Archive behavior:** Yes\n- **Rationale:** This email exhibits multiple strong signals of bulk marketing/newsletter content. The combination of hello@ address, \"Weekly Roundup\" subject line, unsubscribe link, and Mailchimp origin clearly indicates this is unsolicited or non-opted-in marketing content that matches Rule 2 criteria.\n\n---\n\n## Processing Details\n\n### Step 1: Custom Labels Evaluation\n- Email 1 was evaluated against custom label \"RSS: Newsletters\" and matched \u2192 Label applied, archived\n- Emails 2 and 3 did not match any custom label \u2192 Evaluated against standard rules\n\n### Step 2: Standard Rule Evaluation\n- Email 2: Matched Rule 5 (Social Media & Community Notifications)\n- Email 3: Matched Rule 2 (Newsletters & Marketing Emails)\n\n### Step 3: Decision Framework Applied\nFor all emails:\n1. Custom Labels evaluated first (Email 1 matched)\n2. Trusted Domains checked (none from testcompany.com)\n3. Thread participation checked (none are part of ongoing threads)\n4. Action required checked (none require action)\n5. Standard archive rules applied (Emails 2 and 3 matched rules)\n\n---\n\n## Summary Statistics\n\n**Labels applied:**\n- Suspected Junk: 2 emails\n- RSS: Newsletters: 1 email\n- Action Needed: 0 emails\n- Informational: 0 emails\n- Unknown: 0 emails\n\n**Archive actions:** 3 emails (all matched rules requiring archival)\n\n**Notes:**\n- All three emails will be removed from inbox after labeling\n- Email 1 receives special handling via custom label for RSS reader pipeline\n- Emails 2 and 3 are routed to Suspected Junk as routine automated/bulk content\n"}], "grading": {"expectations": [{"text": "Email 1 (Money Stuff from substack.com) is classified with custom label 'RSS: Newsletters' \u2014 it matches BOTH Custom Label criteria: *@substack.com pattern AND Money Stuff newsletter with subject containing 'Money Stuff'. It should NOT be Suspected Junk or Informational", "passed": true, "evidence": "Output shows: 'editor@mattlevine.substack.com | Money Stuff: Banks Are Still Banking | RSS: Newsletters | Custom Label: RSS: Newsletters'. Detailed reasoning confirms: 'Matches Money Stuff newsletter criteria from Substack domain.'"}, {"text": "Email 2 (Medium digest) is classified as Suspected Junk matching Rule 2 or Rule 5 \u2014 Medium digest does not match any Custom Label and matches newsletter/social media signals", "passed": true, "evidence": "Output shows: 'digest@medium.com | Your Daily Medium Digest | Suspected Junk | Rule 5: Social Media & Community Notifications'"}, {"text": "Email 3 (random newsletter via Mailchimp) is classified as Suspected Junk matching Rule 2 \u2014 contains unsubscribe link, sent via Mailchimp, does not match any Custom Label", "passed": true, "evidence": "Output shows: 'hello@randomnewsletter.com | Weekly Roundup #47 | Suspected Junk | Rule 2: Newsletters & Marketing Emails'. Reasoning mentions: 'hello@ sender address pattern, Weekly Roundup subject line, unsubscribe link, and Mailchimp origin'"}], "summary": {"passed": 3, "failed": 0, "total": 3, "pass_rate": 1.0}}}, {"id": "eval-13-with_skill", "prompt": "Explain Gmail search query including custom label exclusions", "eval_id": 13, "outputs": [{"name": "output.md", "type": "text", "content": "# Email Triage Query Analysis\n\n## Task Summary\n\nFollowing the email-triage skill instructions with the provided triage-rules.md, I am describing the Gmail search query that would be used to scan the inbox for email triage, and explaining the reasoning behind it.\n\n## Gmail Search Query\n\n```\nin:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational -label:RSS-/-Newsletters\n```\n\n## Reasoning Behind the Query\n\n### Query Structure\n\nThe query follows the exclusion pattern specified in **Step 2 \u2014 Scan the inbox** of the SKILL.md file. It includes:\n\n1. **`in:inbox`** \u2014 Targets the inbox specifically, ensuring we only process emails the user hasn't already archived or filtered.\n\n2. **Exclusion of Built-in Labels** \u2014 The query excludes three built-in triage labels:\n   - `-label:Suspected-Junk` \u2014 Excludes emails already classified as junk\n   - `-label:Action-Needed` \u2014 Excludes emails already marked for action\n   - `-label:Informational` \u2014 Excludes emails already classified as informational\n\n3. **Exclusion of Custom Labels** \u2014 The query also excludes custom labels defined in the `Custom Labels` section of triage-rules.md:\n   - `-label:RSS-/-Newsletters` \u2014 Excludes emails labeled with the custom \"RSS: Newsletters\" label\n\n### Why These Exclusions Matter\n\nAccording to the SKILL.md instructions:\n\n> \"Use `search_gmail_messages` with a query that excludes already-labeled emails. Build the exclusion query dynamically by including the three built-in labels **plus** any custom labels defined in the `Custom Labels` section of `triage-rules.md`.\"\n\nThe exclusions ensure that:\n\n- **Efficiency**: Only unprocessed, unclassified emails are scanned. Emails from previous triage sessions that already have labels are filtered out.\n- **Accuracy**: The skill doesn't re-classify emails that have already been categorized, reducing redundant processing.\n- **Label Format Conversion**: The custom label name `RSS: Newsletters` is converted to the Gmail search format `RSS-/-Newsletters` because:\n  - Spaces become hyphens in Gmail search queries\n  - The colon followed by space (`RSS: `) becomes `-/-` (the nested label separator in Gmail)\n\n### Expected Results\n\nThis query will return only emails in the inbox that:\n1. Have NOT been classified with any of the built-in labels (Suspected Junk, Action Needed, Informational)\n2. Have NOT been assigned the custom RSS: Newsletters label\n\nThese unprocessed emails are then passed through the decision framework defined in triage-rules.md, which prioritizes:\n\n1. Custom Label matching (RSS: Newsletters for Substack and Money Stuff newsletters)\n2. Trusted Domain checking (testcompany.com)\n3. Thread participation detection\n4. Action requirement assessment\n5. Archive rule matching (4 rules covering vendor solicitations, newsletters, platform notifications, and booking confirmations)\n6. Unknown classification as the safe default\n\n### Mode Note\n\nThe triage-rules.md file specifies **`current_mode: auto`**, which means:\n- The skill will NOT present results for user review before labeling\n- Instead, it will classify all emails and immediately send them to the Google Apps Script for labeling and archiving\n- Results will be logged and a brief summary will be presented to the user after processing completes\n\nThis auto mode streamlines the workflow for users who have well-tested, stable triage rules.\n"}], "grading": {"expectations": [{"text": "The skill uses or describes a Gmail search query that includes 'in:inbox'", "passed": true, "evidence": "Output shows query: 'in:inbox -label:Suspected-Junk -label:Action-Needed -label:Informational -label:RSS-/-Newsletters'"}, {"text": "The search query includes exclusion filters: '-label:Suspected-Junk' or equivalent", "passed": true, "evidence": "Query includes '-label:Suspected-Junk'"}, {"text": "The search query includes exclusion filters: '-label:Action-Needed' or equivalent", "passed": true, "evidence": "Query includes '-label:Action-Needed'"}, {"text": "The search query includes exclusion filters: '-label:Informational' or equivalent", "passed": true, "evidence": "Query includes '-label:Informational'"}, {"text": "The search query includes exclusion filter for the custom label: '-label:RSS-/-Newsletters' or equivalent Gmail search syntax for the nested RSS: Newsletters label", "passed": true, "evidence": "Query includes '-label:RSS-/-Newsletters'. Output explains: 'The custom label name RSS: Newsletters is converted to the Gmail search format RSS-/-Newsletters'"}, {"text": "The skill explains that the exclusion filters prevent re-processing emails from previous sessions", "passed": true, "evidence": "Output states: 'The exclusions ensure that: Efficiency: Only unprocessed, unclassified emails are scanned. Emails from previous triage sessions that already have labels are filtered out.'"}], "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}}}, {"id": "eval-26-with_skill", "prompt": "Classify Substack newsletters, Money Stuff, account notifications, and non-Money-Stuff Bloomberg", "eval_id": 26, "outputs": [{"name": "classification.md", "type": "text", "content": "# Email Triage Classification Results\n\n**Mode:** Review\n**Date:** 2026-03-09\n**Total Emails Processed:** 5\n\n---\n\n## Classification Summary Table\n\n| From | Subject | Label | Rule | Reasoning |\n|---|---|---|---|---|\n| writer@example.substack.com | The Weekly Deep Dive: AI Edition | RSS: Newsletters | Custom Label: RSS: Newsletters | Sender domain is substack.com, matches custom label criteria for Substack newsletters. Archive: yes |\n| noreply@mail.bloombergbusiness.com | Money Stuff: Hedge Funds Are Hedging | RSS: Newsletters | Custom Label: RSS: Newsletters | Sender from Bloomberg with subject containing \"Money Stuff\", matches custom label criteria. Archive: yes |\n| noreply@substack.com | Your password has been changed | Suspected Junk | Rule 3: Automated Platform Notifications | Account notification from Substack (password reset), exempt from RSS: Newsletters custom label. Routine automated notification that does not require action. Archive: yes |\n| author@cooking.substack.com | New post: Summer Recipes | RSS: Newsletters | Custom Label: RSS: Newsletters | Sender domain is substack.com, newsletter post content, matches custom label criteria. Archive: yes |\n| noreply@mail.bloombergbusiness.com | Bloomberg Markets: Daily Wrap | Suspected Junk | Rule 2: Newsletters & Marketing Emails | Sender from noreply@ address, contains unsubscribe link, subject line matches newsletter pattern (\"Daily Wrap\"). Subject is not \"Money Stuff\", so does not match RSS: Newsletters custom label. Archive: yes |\n\n---\n\n## Decision Details\n\n### Email 1: writer@example.substack.com \u2014 \"The Weekly Deep Dive: AI Edition\"\n\n**Classification Chain:**\n1. Custom Label check: Sender domain is `substack.com` \u2192 Matches \"RSS: Newsletters\" custom label\n2. Exception check: This is a newsletter post, not an account notification \u2192 No exception applies\n3. Result: **RSS: Newsletters** (Custom label applies before built-in rules)\n\n**Archive:** Yes (per custom label definition)\n\n---\n\n### Email 2: noreply@mail.bloombergbusiness.com \u2014 \"Money Stuff: Hedge Funds Are Hedging\"\n\n**Classification Chain:**\n1. Custom Label check: Sender from Bloomberg (`noreply@mail.bloombergbusiness.com`), subject contains \"Money Stuff\" \u2192 Matches \"RSS: Newsletters\" custom label\n2. Exception check: This is a bulk newsletter, not an account notification \u2192 No exception applies\n3. Result: **RSS: Newsletters** (Custom label applies before built-in rules)\n\n**Archive:** Yes (per custom label definition)\n\n---\n\n### Email 3: noreply@substack.com \u2014 \"Your password has been changed\"\n\n**Classification Chain:**\n1. Custom Label check: Sender domain is `substack.com`, but...\n2. Exception check: This is an account notification (password reset), not a bulk newsletter \u2192 Exception applies, custom label does not apply\n3. Trusted Domain check: Not from a trusted domain (`testcompany.com`)\n4. Rule 3 check: Automated platform notification from Substack (password reset) \u2192 Matches Rule 3: Automated Platform Notifications\n5. Result: **Suspected Junk** (Rule 3)\n\n**Archive:** Yes (automated notification that does not require action)\n\n---\n\n### Email 4: author@cooking.substack.com \u2014 \"New post: Summer Recipes\"\n\n**Classification Chain:**\n1. Custom Label check: Sender domain is `substack.com` \u2192 Matches \"RSS: Newsletters\" custom label\n2. Exception check: This is a newsletter post, not an account notification \u2192 No exception applies\n3. Result: **RSS: Newsletters** (Custom label applies before built-in rules)\n\n**Archive:** Yes (per custom label definition)\n\n---\n\n### Email 5: noreply@mail.bloombergbusiness.com \u2014 \"Bloomberg Markets: Daily Wrap\"\n\n**Classification Chain:**\n1. Custom Label check: Sender from Bloomberg, but subject is \"Bloomberg Markets: Daily Wrap\", not \"Money Stuff\" \u2192 Does not match \"RSS: Newsletters\" custom label (Money Stuff specific criterion)\n2. Trusted Domain check: Not from a trusted domain (`testcompany.com`)\n3. Rule 2 check:\n   - Sent from `noreply@` address (newsletter signal)\n   - Contains unsubscribe link (newsletter signal)\n   - Subject \"Bloomberg Markets: Daily Wrap\" matches newsletter pattern\n   - Matches Rule 2: Newsletters & Marketing Emails\n4. Result: **Suspected Junk** (Rule 2)\n\n**Archive:** Yes (bulk marketing/newsletter email)\n\n---\n\n## Summary by Label\n\n- **RSS: Newsletters:** 3 emails (archived)\n  - Email 1: The Weekly Deep Dive: AI Edition\n  - Email 2: Money Stuff: Hedge Funds Are Hedging\n  - Email 4: New post: Summer Recipes\n\n- **Suspected Junk:** 2 emails (archived)\n  - Email 3: Your password has been changed (Rule 3)\n  - Email 5: Bloomberg Markets: Daily Wrap (Rule 2)\n\n- **Action Needed:** 0 emails\n- **Informational:** 0 emails\n- **Unknown:** 0 emails\n\n---\n\n## Review Mode \u2014 Action Required\n\nAll 5 emails have been classified and are ready for your review.\n\n**Next steps:**\n1. Review the classifications above\n2. If you approve all classifications, confirm and the emails will be labeled and archived\n3. If you disagree with any classification, specify which email(s) should be reclassified and how\n4. If you have questions about the reasoning for any classification, ask and I'll explain further\n\nPlease confirm approval to proceed with labeling.\n"}], "grading": {"expectations": [{"text": "Email 1 (Substack newsletter from example.substack.com) is classified with custom label 'RSS: Newsletters' \u2014 matches *@substack.com pattern and is a newsletter post", "passed": true, "evidence": "Output shows: 'writer@example.substack.com | The Weekly Deep Dive: AI Edition | RSS: Newsletters | Custom Label: RSS: Newsletters'"}, {"text": "Email 2 (Money Stuff from Bloomberg) is classified with custom label 'RSS: Newsletters' \u2014 matches Money Stuff criteria (Bloomberg sender with 'Money Stuff' in subject)", "passed": true, "evidence": "Output shows: 'noreply@mail.bloombergbusiness.com | Money Stuff: Hedge Funds Are Hedging | RSS: Newsletters | Custom Label: RSS: Newsletters'"}, {"text": "Email 3 (Substack password change) is NOT classified as 'RSS: Newsletters' \u2014 it's an account notification (password reset), which is an exception to the custom label rule. Should be classified with a built-in label instead", "passed": true, "evidence": "Output shows: 'noreply@substack.com | Your password has been changed | Suspected Junk | Rule 3: Automated Platform Notifications'. Decision details confirm: 'This is an account notification (password reset), not a bulk newsletter \u2192 Exception applies, custom label does not apply'"}, {"text": "Email 4 (Substack newsletter from cooking.substack.com) is classified with custom label 'RSS: Newsletters' \u2014 matches *@substack.com pattern and is a newsletter post", "passed": true, "evidence": "Output shows: 'author@cooking.substack.com | New post: Summer Recipes | RSS: Newsletters | Custom Label: RSS: Newsletters'"}, {"text": "Email 5 (Bloomberg Markets, NOT Money Stuff) is NOT classified as 'RSS: Newsletters' \u2014 the subject does not contain 'Money Stuff'. Should be classified as Suspected Junk via Rule 2", "passed": true, "evidence": "Output shows: 'noreply@mail.bloombergbusiness.com | Bloomberg Markets: Daily Wrap | Suspected Junk | Rule 2: Newsletters & Marketing Emails'. Decision details: 'subject is Bloomberg Markets: Daily Wrap, not Money Stuff \u2192 Does not match RSS: Newsletters custom label'"}], "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}}}, {"id": "eval-27-with_skill", "prompt": "Build JSON action plan with custom labels and proper archive behavior", "eval_id": 27, "outputs": [{"name": "output.md", "type": "text", "content": "# Email Triage Action Plan \u2014 Iteration 1, Eval 27\n\n## Task Summary\n\nFollowing the **email-triage** skill (Step 5 \u2014 Label and archive via Apps Script), I have analyzed the 5 pre-classified emails and built the JSON action plan that would be sent to the Apps Script.\n\n---\n\n## Classification Analysis\n\n| Message ID | From | Label | Archive | Notes |\n|---|---|---|---|---|\n| msg_sub111 | writer@example.substack.com | RSS: Newsletters | true | Matches custom label rule (Substack domain) |\n| msg_money222 | noreply@mail.bloombergbusiness.com | RSS: Newsletters | true | Matches custom label rule (Bloomberg Money Stuff) |\n| msg_spam333 | spam@junk.com | Suspected Junk | true | Built-in junk classification |\n| msg_boss444 | boss@testcompany.com | Action Needed | false | Trusted domain + action-requiring email |\n| msg_unknown555 | mystery@example.org | Unknown | omitted | Unknown emails are omitted from action plan per Step 5 |\n\n---\n\n## JSON Action Plan\n\nThis is the action plan that would be POSTed to the Apps Script at `https://script.google.com/macros/s/EXAMPLE/exec`:\n\n```json\n{\n  \"secret\": \"test-secret-456\",\n  \"actions\": [\n    {\n      \"messageId\": \"msg_sub111\",\n      \"addLabels\": [\"RSS: Newsletters\"],\n      \"archive\": true\n    },\n    {\n      \"messageId\": \"msg_money222\",\n      \"addLabels\": [\"RSS: Newsletters\"],\n      \"archive\": true\n    },\n    {\n      \"messageId\": \"msg_spam333\",\n      \"addLabels\": [\"Suspected Junk\"],\n      \"archive\": true\n    },\n    {\n      \"messageId\": \"msg_boss444\",\n      \"addLabels\": [\"Action Needed\"],\n      \"archive\": false\n    }\n  ]\n}\n```\n\n---\n\n## Decision Rationale\n\n### Custom Labels First\n\nPer the skill instructions (Step 3), custom labels are evaluated **before** built-in labels. Two emails match the `RSS: Newsletters` custom label rule defined in `triage-rules-auto.md`:\n\n- **msg_sub111**: Sender domain is `substack.com`, which explicitly matches the custom label rule for Substack newsletters.\n- **msg_money222**: Sender is `noreply@mail.bloombergbusiness.com` with a subject typically containing \"Money Stuff\" \u2014 matches the Money Stuff newsletter criteria in the custom label rule.\n\nBoth are archived per the custom label definition: `Archive after labeling: Yes`.\n\n### Built-in Labels\n\n- **msg_spam333**: Classified as \"Suspected Junk\" per Rule 1 (Vendor Solicitations) or Rule 3 (general junk pattern). Archive: true.\n- **msg_boss444**: Sender `boss@testcompany.com` is from a Trusted Domain (`testcompany.com`), and the email requires action. Per the Decision Framework (Step 2), trusted domain emails are kept. Archive: false.\n\n### Unknown Classification\n\n- **msg_unknown555**: Classified as \"Unknown\" \u2014 does not match any custom label or decision framework rule. Per Step 5 of the skill, **emails classified as Unknown are omitted from the action plan entirely** because they don't receive a label or archive action. This prevents false positives.\n\n---\n\n## Execution Notes\n\n1. **Total actions:** 4 (msg_sub111, msg_money222, msg_spam333, msg_boss444)\n2. **Omitted:** 1 (msg_unknown555 \u2014 Unknown classification)\n3. **Archived:** 3 (custom labels + suspected junk)\n4. **Kept in inbox:** 1 (action needed)\n5. **Apps Script URL:** `https://script.google.com/macros/s/EXAMPLE/exec`\n6. **Secret:** `test-secret-456` (from provided config)\n\nThe JSON payload is ready to POST. The Apps Script would apply the four labels and execute the archive operations according to each action's `archive` field.\n"}], "grading": {"expectations": [{"text": "The JSON payload includes a 'secret' field set to 'test-secret-456'", "passed": true, "evidence": "JSON shows: '\"secret\": \"test-secret-456\"'"}, {"text": "msg_sub111 has addLabels: ['RSS: Newsletters'] and archive: true \u2014 custom label with archive behavior from triage-rules.md", "passed": true, "evidence": "JSON action: '{\"messageId\": \"msg_sub111\", \"addLabels\": [\"RSS: Newsletters\"], \"archive\": true}'"}, {"text": "msg_money222 has addLabels: ['RSS: Newsletters'] and archive: true \u2014 custom label with archive behavior", "passed": true, "evidence": "JSON action: '{\"messageId\": \"msg_money222\", \"addLabels\": [\"RSS: Newsletters\"], \"archive\": true}'"}, {"text": "msg_spam333 has addLabels: ['Suspected Junk'] and archive: true", "passed": true, "evidence": "JSON action: '{\"messageId\": \"msg_spam333\", \"addLabels\": [\"Suspected Junk\"], \"archive\": true}'"}, {"text": "msg_boss444 has addLabels: ['Action Needed'] and archive: false", "passed": true, "evidence": "JSON action: '{\"messageId\": \"msg_boss444\", \"addLabels\": [\"Action Needed\"], \"archive\": false}'"}, {"text": "msg_unknown555 (Unknown) is NOT included in the actions array", "passed": true, "evidence": "JSON actions array has 4 entries, none with messageId 'msg_unknown555'. Table notes: 'Unknown emails are omitted from action plan per Step 5'"}, {"text": "The actions array has exactly 4 entries (not 5, since Unknown is excluded)", "passed": true, "evidence": "JSON actions array contains exactly 4 objects: msg_sub111, msg_money222, msg_spam333, msg_boss444"}, {"text": "The custom label name 'RSS: Newsletters' is used exactly as defined in triage-rules.md (with the colon and space)", "passed": true, "evidence": "Both custom label entries use '\"RSS: Newsletters\"' with colon and space in the addLabels array"}], "summary": {"passed": 8, "failed": 0, "total": 8, "pass_rate": 1.0}}}, {"id": "eval-28-with_skill", "prompt": "Create triage log that includes archived custom-labeled emails", "eval_id": 28, "outputs": [{"name": "email-triage-log.md", "type": "text", "content": "# Email Triage Log\n\n| Date | From | Subject | Label | Rule | Reason | Feedback |\n|---|---|---|---|---|---|---|\n| 2026-03-09 | CoolWriter | Weekly Deep Dive | RSS: Newsletters | Custom Label \u2014 RSS: Newsletters | Substack newsletter matching *@substack.com custom label | |\n| 2026-03-09 | Matt Levine | Money Stuff: Banks Again | RSS: Newsletters | Custom Label \u2014 RSS: Newsletters | Money Stuff newsletter from Bloomberg matching custom label | |\n| 2026-03-09 | SpammerInc | Buy our product! | Suspected Junk | Rule 1 | Cold outreach | |\n"}], "grading": {"expectations": [{"text": "The log file is created as email-triage-log.md", "passed": true, "evidence": "File exists at outputs/email-triage-log.md with correct Markdown table format"}, {"text": "The log includes the Suspected Junk entry for SpammerInc", "passed": true, "evidence": "Log contains row: '| 2026-03-09 | SpammerInc | Buy our product! | Suspected Junk | Rule 1 | Cold outreach | |'"}, {"text": "The log includes the RSS: Newsletters entry for Matt Levine (Money Stuff) \u2014 because this custom label archives the email", "passed": true, "evidence": "Log contains row: '| 2026-03-09 | Matt Levine | Money Stuff: Banks Again | RSS: Newsletters | Custom Label \u2014 RSS: Newsletters | Money Stuff newsletter from Bloomberg matching custom label | |'"}, {"text": "The log includes the RSS: Newsletters entry for CoolWriter (Substack) \u2014 because this custom label archives the email", "passed": true, "evidence": "Log contains row: '| 2026-03-09 | CoolWriter | Weekly Deep Dive | RSS: Newsletters | Custom Label \u2014 RSS: Newsletters | Substack newsletter matching *@substack.com custom label | |'"}, {"text": "The log does NOT include the Action Needed entry for boss@testcompany.com", "passed": true, "evidence": "No row in the log contains 'boss@testcompany.com' or 'Action Needed'"}, {"text": "The log does NOT include the Informational entry for colleague@testcompany.com", "passed": true, "evidence": "No row in the log contains 'colleague@testcompany.com' or 'Informational'"}, {"text": "The Label column shows 'RSS: Newsletters' for the custom-labeled entries", "passed": true, "evidence": "Both Matt Levine and CoolWriter rows show 'RSS: Newsletters' in the Label column"}, {"text": "The Feedback column is left empty for user annotation", "passed": true, "evidence": "All rows end with '| |' indicating empty Feedback column"}], "summary": {"passed": 8, "failed": 0, "total": 8, "pass_rate": 1.0}}}, {"id": "eval-29-with_skill", "prompt": "Auto-mode classification with custom label counts in summary", "eval_id": 29, "outputs": [{"name": "classification.md", "type": "text", "content": "# Email Triage Classification Results\n\n**Mode:** auto\n**Date:** 2026-03-09\n\n## Summary\n\nProcessed **4** emails:\n- RSS: Newsletters: 2\n- Action Needed: 1\n- Suspected Junk: 1\n\n---\n\n## Detailed Classification\n\n| From | Subject | Label | Rule | Reasoning |\n|---|---|---|---|---|\n| writer@techblog.substack.com | New post: The Future of Computing | RSS: Newsletters | Custom Label: RSS: Newsletters | Matches `*@substack.com` pattern. Contains unsubscribe link indicating bulk newsletter send. |\n| noreply@mail.bloombergbusiness.com | Money Stuff: Crypto Is Cryptic | RSS: Newsletters | Custom Label: RSS: Newsletters | Matches Money Stuff newsletter by Matt Levine from Bloomberg. Sender domain is noreply@mail.bloombergbusiness.com. |\n| sales@outreach.io | Quick demo? | Suspected Junk | Rule 1: Vendor Solicitations & Cold Outreach | Subject contains \"demo\". Sender is from unknown domain (not testcompany.com). Unsolicited sales pitch from company with no existing relationship. |\n| boss@testcompany.com | Urgent: Budget review | Action Needed | Trusted Domain + Action Required | Sender is from testcompany.com (Trusted Domain). Email requires user response/action by EOD. |\n\n---\n\n## Actions\n\n### To Archive (RSS: Newsletters)\n- writer@techblog.substack.com - New post: The Future of Computing\n- noreply@mail.bloombergbusiness.com - Money Stuff: Crypto Is Cryptic\n\n### To Archive (Suspected Junk)\n- sales@outreach.io - Quick demo?\n\n### To Keep in Inbox\n- boss@testcompany.com - Urgent: Budget review\n"}], "grading": {"expectations": [{"text": "Email 1 (Substack newsletter) is classified with custom label 'RSS: Newsletters'", "passed": true, "evidence": "Output shows: 'writer@techblog.substack.com | New post: The Future of Computing | RSS: Newsletters | Custom Label: RSS: Newsletters'"}, {"text": "Email 2 (Money Stuff) is classified with custom label 'RSS: Newsletters'", "passed": true, "evidence": "Output shows: 'noreply@mail.bloombergbusiness.com | Money Stuff: Crypto Is Cryptic | RSS: Newsletters | Custom Label: RSS: Newsletters'"}, {"text": "Email 3 (cold outreach) is classified as Suspected Junk", "passed": true, "evidence": "Output shows: 'sales@outreach.io | Quick demo? | Suspected Junk | Rule 1: Vendor Solicitations & Cold Outreach'"}, {"text": "Email 4 (boss urgent) is classified as Action Needed", "passed": true, "evidence": "Output shows: 'boss@testcompany.com | Urgent: Budget review | Action Needed | Trusted Domain + Action Required'"}, {"text": "Results are presented in auto-mode format with summary counts that include the custom label category (e.g., RSS: Newsletters: 2, Suspected Junk: 1, Action Needed: 1)", "passed": true, "evidence": "Output shows auto-mode summary: 'Processed 4 emails: - RSS: Newsletters: 2 - Action Needed: 1 - Suspected Junk: 1'"}, {"text": "The skill does NOT present a table for approval (auto mode skips the approval step)", "passed": true, "evidence": "Output does not contain any approval prompt, review request, or 'Approve all' option. It presents the summary and detailed classification directly."}], "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}}}, {"id": "eval-30-with_skill", "prompt": "Explain the Custom Labels section from triage-rules.md", "eval_id": 30, "outputs": [{"name": "output.md", "type": "text", "content": "# Custom Labels Section Analysis\n\n## Overview\n\nThe Custom Labels section in the triage rules defines email categories that are processed **before** the standard classification rules (Suspected Junk, Action Needed, Informational, Unknown). This means if an email matches a custom label rule, it receives that label and is handled according to the custom label's archive behavior \u2014 the email is not evaluated against any of the built-in classification rules.\n\n---\n\n## Custom Label Defined: RSS: Newsletters\n\n### Label Name\n`RSS: Newsletters`\n\n### Archive Behavior\n**Archive after labeling:** Yes\n\nEmails matching this label are tagged for the user's RSS reader pipeline and automatically removed from the inbox.\n\n### Matching Criteria\n\nThe label matches emails from these sources:\n\n1. **All Substack newsletters**\n   - Any sender with a `@substack.com` domain\n   - Includes custom Substack subdomains like `newsletter@example.substack.com`\n\n2. **Money Stuff newsletter by Matt Levine**\n   - Sent from Bloomberg email addresses (typically `noreply@mail.bloombergbusiness.com` or similar Bloomberg addresses)\n   - Subject line contains \"Money Stuff\"\n\n### Exceptions (Do NOT Apply This Label If)\n\nThe label is **not** applied to these types of emails, even if they otherwise match the criteria:\n\n1. **Direct personal replies or conversations**\n   - Emails that are part of an ongoing thread or direct correspondence\n   - Not bulk newsletter sends\n\n2. **Account notifications from Substack**\n   - Password reset emails\n   - Billing-related notifications\n   - Any administrative account email rather than a newsletter post\n\n---\n\n## How Matching Emails Are Handled\n\nWhen an email matches the `RSS: Newsletters` label criteria:\n\n1. **The email receives the label:** `RSS: Newsletters` is applied to the email in Gmail, creating a nested label structure where \"Newsletters\" is nested under \"RSS\"\n\n2. **The email is archived:** Because the archive setting is \"Yes,\" the email is automatically removed from the inbox and placed in the archive\n\n3. **Standard rules are skipped:** The email does not proceed through the built-in classification rules. It will not be evaluated as Suspected Junk, Action Needed, Informational, or Unknown\n\n4. **Logging:** Emails that are archived by custom label rules (like this one) are included in the email triage log for user review\n\n---\n\n## Processing Priority\n\nAccording to the Decision Framework, custom labels are checked **first** in the email classification process:\n\n1. **Step 1:** Does the email match a Custom Label rule? \u2192 If yes, apply that custom label and follow its archive behavior. Stop here.\n2. **Step 2 onwards:** If no custom label matches, then evaluate against Trusted Domains, thread context, action requirements, and standard archive rules.\n\nThis means the `RSS: Newsletters` rule takes precedence over all other classification rules, ensuring that Substack and Money Stuff emails are consistently routed to the RSS reader pipeline without being accidentally classified as other labels.\n\n---\n\n## Summary Table\n\n| Aspect | Details |\n|--------|---------|\n| **Label Name** | RSS: Newsletters |\n| **Archive?** | Yes (automatically archived) |\n| **Matched Senders** | All @substack.com addresses; Money Stuff from Bloomberg |\n| **Exceptions** | Direct replies (not bulk sends); Substack account notifications |\n| **Processing Order** | Evaluated FIRST, before all other rules |\n| **Action on Match** | Apply label, archive email, skip further classification |\n"}], "grading": {"expectations": [{"text": "The skill identifies the Custom Labels section in triage-rules.md", "passed": true, "evidence": "Output has dedicated section: '## Custom Label Defined: RSS: Newsletters' and explains: 'The Custom Labels section in the triage rules defines email categories that are processed before the standard classification rules'"}, {"text": "The skill explains that 'RSS: Newsletters' is defined as a custom label", "passed": true, "evidence": "Output clearly identifies: 'Label Name: RSS: Newsletters'"}, {"text": "The skill describes the matching criteria: *@substack.com domains and Money Stuff newsletter from Bloomberg", "passed": true, "evidence": "Output lists: '1. All Substack newsletters - Any sender with a @substack.com domain' and '2. Money Stuff newsletter by Matt Levine - Sent from Bloomberg email addresses... Subject line contains Money Stuff'"}, {"text": "The skill explains that matching emails are labeled 'RSS: Newsletters' and archived", "passed": true, "evidence": "Output states: 'Archive after labeling: Yes' and 'Emails matching this label are tagged for the user's RSS reader pipeline and automatically removed from the inbox.'"}, {"text": "The skill mentions the exceptions: Substack account notifications (password reset, billing) are excluded", "passed": true, "evidence": "Output lists exceptions: '2. Account notifications from Substack - Password reset emails - Billing-related notifications - Any administrative account email rather than a newsletter post'"}, {"text": "The skill explains that custom labels are evaluated before built-in labels in the Decision Framework", "passed": true, "evidence": "Output states: 'Step 1: Does the email match a Custom Label rule? \u2192 If yes, apply that custom label and follow its archive behavior. Stop here.' and 'This means the RSS: Newsletters rule takes precedence over all other classification rules'"}], "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"skill_name": "email-triage", "iteration": 1, "timestamp": "2026-03-09", "configurations": [{"name": "with_skill", "label": "With Skill (Custom Labels Update)"}], "evals": [{"eval_id": 3, "eval_name": "classification-with-custom-labels", "results": {"with_skill": {"pass_rate": 1.0, "passed": 9, "total": 9, "duration_seconds": 23.7, "total_tokens": 56099}}}, {"eval_id": 7, "eval_name": "money-stuff-custom-label", "results": {"with_skill": {"pass_rate": 1.0, "passed": 3, "total": 3, "duration_seconds": 23.7, "total_tokens": 56069}}}, {"eval_id": 13, "eval_name": "search-query-custom-labels", "results": {"with_skill": {"pass_rate": 1.0, "passed": 6, "total": 6, "duration_seconds": 17.5, "total_tokens": 54573}}}, {"eval_id": 26, "eval_name": "custom-label-exceptions", "results": {"with_skill": {"pass_rate": 1.0, "passed": 5, "total": 5, "duration_seconds": 22.2, "total_tokens": 56357}}}, {"eval_id": 27, "eval_name": "action-plan-custom-labels", "results": {"with_skill": {"pass_rate": 1.0, "passed": 8, "total": 8, "duration_seconds": 24.2, "total_tokens": 56806}}}, {"eval_id": 28, "eval_name": "logging-custom-labels", "results": {"with_skill": {"pass_rate": 1.0, "passed": 8, "total": 8, "duration_seconds": 12.9, "total_tokens": 52819}}}, {"eval_id": 29, "eval_name": "auto-mode-custom-labels", "results": {"with_skill": {"pass_rate": 1.0, "passed": 6, "total": 6, "duration_seconds": 14.2, "total_tokens": 54734}}}, {"eval_id": 30, "eval_name": "explain-custom-labels", "results": {"with_skill": {"pass_rate": 1.0, "passed": 6, "total": 6, "duration_seconds": 15.7, "total_tokens": 54971}}}], "aggregate": {"with_skill": {"mean_pass_rate": 1.0, "stddev_pass_rate": 0.0, "total_passed": 51, "total_expectations": 51, "mean_duration_seconds": 19.3, "mean_tokens": 55428}}}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

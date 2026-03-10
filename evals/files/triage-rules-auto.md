@@ -42,6 +42,7 @@ Archive bulk marketing emails, promotional content, and subscription newsletters
 **Exceptions — DO NOT archive:**
 
 - Newsletters the user has explicitly opted into (see Trusted Sources below)
+- Newsletters that match a Custom Label rule (they get that label instead)
 
 ### 3. Automated Platform Notifications
 
@@ -80,7 +81,40 @@ notifications.
 
 ## Trusted Sources (newsletters to KEEP)
 
-- `*@substack.com` — All Substack newsletters
+These specific newsletter senders should never be archived as Suspected Junk:
+
+- (None currently — Substack newsletters are routed to custom labels below)
+
+---
+
+## Custom Labels
+
+Custom labels are applied **before** the standard classification rules. If an
+email matches a custom label, it receives that label and follows the archive
+behavior specified here — it is not evaluated against the built-in rules.
+
+### RSS: Newsletters
+
+**Label:** `RSS: Newsletters`
+**Archive after labeling:** Yes
+
+Emails matching this label are tagged for the user's RSS reader pipeline and
+removed from the inbox.
+
+**Matching criteria:**
+
+- `*@substack.com` — All Substack newsletters (any sender with a substack.com
+  domain, including custom subdomains like `newsletter@example.substack.com`)
+- Money Stuff newsletter by Matt Levine (from Bloomberg, typically sent from
+  `noreply@mail.bloombergbusiness.com` or similar Bloomberg addresses with
+  subject containing "Money Stuff")
+
+**Exceptions — do NOT apply this label if:**
+
+- The email is a direct personal reply or conversation (not a bulk newsletter
+  send)
+- The email is an account notification from Substack (e.g., password reset,
+  billing) rather than a newsletter post
 
 ---
 
@@ -88,8 +122,10 @@ notifications.
 
 When evaluating an email, follow this priority order:
 
-1. **Is the sender from a Trusted Domain?** → KEEP
-2. **Is the user in the To/CC field and the email is part of an ongoing thread?** → KEEP
-3. **Does the email require a response or action from the user?** → KEEP
-4. **Does the email match any archive rule above?** → ARCHIVE
-5. **When in doubt** → KEEP
+1. **Does the email match a Custom Label rule?** → Apply that custom label and
+   follow its archive behavior. Stop here — do not evaluate further.
+2. **Is the sender from a Trusted Domain?** → KEEP
+3. **Is the user in the To/CC field and the email is part of an ongoing thread?** → KEEP
+4. **Does the email require a response or action from the user?** → KEEP
+5. **Does the email match any archive rule above?** → ARCHIVE
+6. **When in doubt** → KEEP
